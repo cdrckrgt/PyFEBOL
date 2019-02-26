@@ -1,0 +1,25 @@
+PyFEBOL todo list
+
+Cedrick Argueta
+
+TODO:
+
+what were we using from FEBOL that is essential to the project?
+
+different types of sensors
+a drone with physics incorporated
+    an interface for moving the drone with keras
+information filters
+    kalman, discrete, particle
+cost models
+    constant, moving
+
+other policies? 
+    not really necessary, maybe a random or mean policy since that's easy
+
+somewhat DONE:
+a search domain for the target to live in
+    needs movement of target
+
+DONE:
+
