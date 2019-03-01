@@ -1,5 +1,5 @@
 '''
-Drone.py
+drone.py
 
 Cedrick Argueta
 cdrckrgt@stanford.edu
