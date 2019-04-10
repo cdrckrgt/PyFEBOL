@@ -20,6 +20,8 @@ other policies?
 somewhat DONE:
 a search domain for the target to live in
     needs movement of target
+bearing only sensor
+drone with movement
 
 DONE:
 

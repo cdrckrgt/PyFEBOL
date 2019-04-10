@@ -24,7 +24,6 @@ class BearingOnlySensor(Sensor):
         noise = self.sigma * np.random.randn()
         return (truth + noise) % 360.
  
-    @staticmethod
     def getTrueBearing(self, theta, pose):
         xr = theta[0] - pose[0]        
         yr = theta[1] - pose[1]        

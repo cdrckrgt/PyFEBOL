@@ -7,10 +7,9 @@ cdrckrgt@stanford.edu
 the drone and its physics, movement
 '''
 import numpy as np
-import sensor import Sensor
 
 class Drone(object):
-    def __init__(self, x, y, heading, maxStep = 2.0, sensor):
+    def __init__(self, x, y, heading, maxStep, sensor):
         self.x = x
         self.y = y
         self.heading = heading
@@ -20,7 +19,6 @@ class Drone(object):
     def getPose(self):
         return self.x, self.y, self.heading
 
-    @staticmethod
     def getNewPose(self, pose, action):
         newX = pose[0] + action[0]
         newY = pose[1] + action[1]
@@ -30,8 +28,8 @@ class Drone(object):
     def act(self, action):
         self.x, self.y, self.heading = self.getNewPose(self.getPose(), action)
 
-    def observe(self):
-        pass
+    def observe(self, searchdomain):
+        return self.sensor.observe(searchdomain.getTargetLocation(), self.getPose())
 
 if __name__ == '__main__':
     pass 
