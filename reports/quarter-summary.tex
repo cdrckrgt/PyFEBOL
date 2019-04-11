@@ -1,0 +1,130 @@
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{verbatim}
+\usepackage{amsfonts}
+\usepackage{dsfont}
+\usepackage{amsmath}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\begin{document}
+
+\title{Quarter Progress Report}
+\author{Cedrick Argueta}
+
+\maketitle
+
+\begin{comment}
+
+\section{Introduction}
+Tomorrow morning is fine. I'd say closer to a summary of what you learned. It would still be good to include some background and what the goal is (since he probably isn't as familiar as we are). After highlighting the goal, let him know how you are approaching the problem and what you have accomplished so far. Feel free to let him know what problems you ran into and how you overcame them. 
+
+
+\section{Introduction}
+
+
+previous work: Kyle's paper on distributed wildfire with drones, louis' paper on drone localization
+
+what i've done so far:
+    read the papers
+    done some simple examples with louis' FEBOL module
+    set up dev environment locally
+    developed system to train RL models on the FEBOL code easily
+    moved system onto astoria
+    
+stuff ive learned:
+    gone in depth on more advanced reinforcement learning than cs221
+    working with FEBOL and the mathematics behind kyle's and louis' papers
+    more advanced RL setups with keras rl
+
+\end{comment}
+
+\section{Introduction}
+This work builds heavily off of \cite{dronehunter} in that we have the same goal -- improve drone tracking performance over greedy, one-step planners.
+We have two drones, a seeker drone and a target drone, and wish to track the moving target drone with the seeker drone by capturing emissions by the target drone's radio.
+However, the MCTS solution presented is often requires large amounts of memory and computational power that might be lacking on drone avionics boards.
+We propose using deep reinforcement learning to combat this problem, since the amount of memory required for inference is relatively small compared to traditional POMDP planners.
+
+\section{Background}
+As in \cite{dronehunter}, we use a belief-MDP to model the problem.
+The state of the system at time $t$ is $s_t = (b_t, x_t)$, where $b_t$ is the belief of the distribution of possible target states, and $x_t$ is the seeker's state.
+$b_t$ is used to represent the information that we've gathered from the target drone's radio.
+$b_t$ can be approximated well with a discrete filter for stationary targets, or a particle filter for moving targets.
+The action taken at time $t$ is $u_t$, and is one of a discrete set of commands given to the seeker drone.
+These actions are constant velocity actions in a radial pattern about the seeker drone.
+Because we've modeled the position of the target drone with a probability distribution, we'd like to minimize the uncertainty in our target estimate.
+This happens when we have a low amount of entropy in the particle filter.
+To find entropy, we must first discretize the particle filter into $M$ bins.
+We can then define this entropy as:
+\begin{equation}
+H(b_t) = -\sum_{i = 1}^M\tilde{b}_t[i]\log\tilde{b}_t[i]
+\end{equation}
+where $\tilde{b}_t$ is the proportion of particles in each bin $i$.
+We'd also like to penalize near-collisions, so our cost function at time $t$ is:
+\begin{equation}
+J(s_t) = H(b_t) + \lambda\mathop{{}\mathbb{E}}_{b_t} \mathds{1} (\Vert x_t - \theta_t\Vert < d)
+\end{equation}
+where  $\theta_t$ is the target drone's actual position, and $\mathds{1}$ is an indicator function.
+
+To solve this belief-MDP, we make use of deep reinforcement learning.
+Much of the basis for deep reinforcement learning in this task comes from \cite{kyle}.
+We define the Q-value of a state-action $(s, a)$ pair as:
+\begin{equation}
+Q(s, a) = r(s) + \gamma\sum_{s' \in S}T(s, a, s')\max_{a' \in A}Q(s', a')
+\end{equation}
+where $r(s)$ is the reward received for being in state $s$, $\gamma$ is the discount factor, $T(s, a, s')$ is the transition probability of going from $s$ to $s'$ with action $a$.
+We use function approximation to mitigate the issues that arise from having such a large state space.
+Then our goal is to minimize the Bellman error, defined as
+\begin{equation}
+E = r + \gamma\max_{a' in A}Q(s', a'; \mathbf{w}) - Q(s, a; \mathbf{w})
+\end{equation}
+where we have a state, action, reward, next state tuple $(s, a, r, s')$ and $Q(\dots; \mathbf{w})$ indicates that the Q-value function is parameterized by some weights $\mathbf{w}$.
+Then the optimal policy $\pi_{opt}$ may be computed as:
+\begin{equation}
+\pi_{opt}(s, a) = \argmax_{a \in A}Q(s, a; \mathbf{w})
+\end{equation}
+which tells us the best action to take from a given state-action pair.
+
+
+
+\section{Approach}
+We use the FEBOL package in \cite{febol} for the simulation enviroment. 
+For a preliminary implementation, we simplify the problem in two ways: we assume a stationary target, and use a discrete filter rather than a particle filter to model the target belief.
+
+Preliminary results will come from using the DQN algorithm presented in \cite{dqn} on this task. 
+We chose to do so because it showed promising results in \cite{kyle}, and is relatively simple to implement compared to state-of-the-art algorithms.
+Since we have two types of inputs, a belief distribution represented as a matrix and the seeker drone's state, we need begin with two separate networks. 
+The seeker state network is a simple fully connected network that takes an input in $\mathbb{R}^{3}$, representing the seeker's $x$ position, $y$ position, and bearing.
+The input is fed into five consecutive hidden layers of 100 units each, each with rectified linear unit activations.
+The belief network is a convolutional neural network that takes the filter matrix as input.
+This input is fed into three convolutional layers, each with 64 units and a filter size of $(3 \times 3)$.
+Each of these convolutional layers is followed by a max pooling layer with a filter size of $(2 \times 2)$.
+After the final max pooling layer, the outputs are fed into a dense layer with a size of 500 units.
+Finally, the outputs of both these networks are concatenated and fed into two consecutive dense layers, each with a size of 200 units and followed by rectified linear unit activations.
+The output layer has a dimensionality that equals the number of actions that the seeker can take, and each represents the Q-value for that action and the current state.
+
+Learning the network parameters can be done with gradient descent or any of its derivatives.
+We use AdaMax in our implementation.
+
+With the simulation environment and testing infrastructure in place, we will then begin to compare inference times and performance to the MCTS approach described in \cite{dronehunter}.
+
+\section{State of the Project}
+The preliminary approach described earlier has been implemented on my local machine with Keras-rl and FEBOL.
+The primary difficulty there was learning how to connect all the moving parts of the project: simulation code written in Julia, a deep reinforcement learning package written in Python, and the supporting packages that allowed the two to communicate.
+Several bugs rose out of the fact that only specific versions of these packages interfaced well with each other, and finding a combination that worked required quite a bit trial and error.
+
+I'm currently in the process of moving the local code to a server with GPUs so that we can begin to run experiments.
+This, however, brought me back to the stage where I had to find compatible versions of every package.
+I've been blocked on a considerably nasty bug with the Julia-to-Python pipeline for all of finals week, so that's where my my time on the project over this break will go.
+I'm also considering a rewrite of several parts of the reinforcement learning infrastructure so that I no longer depend on Keras, hopefully alleviating some of the version woes that have plagued me so far.
+
+In terms of big picture, we have a vastly simplified problem so that we can verify that our infrastructure works. 
+Once this is done, we can begin to expand to the full problem and use a particle filter rather than a discrete filter and allow for the target drone to move.
+Then I'd be able to run the same experiments as in \cite{dronehunter} and compare inference times for MCTS vs. DRL.
+
+
+\bibliography{ref}
+\bibliographystyle{plain}
+
+\end{document}
+

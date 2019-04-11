@@ -1,0 +1,23 @@
+\begin{thebibliography}{1}
+
+\bibitem{febol}
+Louis Dressel.
+\newblock Filter exploration for bearing only localization, 2018.
+
+\bibitem{dronehunter}
+Louis Dressel and Mykel~J. Kochenderfer.
+\newblock Hunting drones with other drones: Tracking a moving radio target.
+
+\bibitem{kyle}
+Kyle~D. Julian and Mykel~J. Kochenderfer.
+\newblock Distributed wildfire surveillance with autonomous aircraft using deep
+  reinforcement learning.
+\newblock {\em CoRR}, abs/1810.04244, 2018.
+
+\bibitem{dqn}
+Volodymyr Mnih, Koray Kavukcuoglu, David Silver, Alex Graves, Ioannis
+  Antonoglou, Daan Wierstra, and Martin~A. Riedmiller.
+\newblock Playing atari with deep reinforcement learning.
+\newblock {\em CoRR}, abs/1312.5602, 2013.
+
+\end{thebibliography}
