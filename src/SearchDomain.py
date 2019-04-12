@@ -20,10 +20,10 @@ class SearchDomain(object):
         else:
             pass # TODO: change to allow source movement
     
-    def getTargetLocation(self):
+    def getTheta(self):
         return self.theta
 
 
 if __name__ == '__main__':
     sd = SearchDomain(100)
-    print(sd.getTargetLocation())
+    print(sd.getTheta())

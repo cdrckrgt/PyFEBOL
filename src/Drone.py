@@ -4,7 +4,7 @@ drone.py
 Cedrick Argueta
 cdrckrgt@stanford.edu
 
-the drone and its physics, movement
+the drone and its movement
 '''
 import numpy as np
 
@@ -29,7 +29,7 @@ class Drone(object):
         self.x, self.y, self.heading = self.getNewPose(action)
 
     def observe(self, searchdomain):
-        return self.sensor.observe(searchdomain.getTargetLocation(), self.getPose())
+        return self.sensor.observe(searchdomain.getTheta(), self.getPose())
 
 if __name__ == '__main__':
     pass 

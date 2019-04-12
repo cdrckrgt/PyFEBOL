@@ -3,9 +3,10 @@ from sensor import BearingOnlySensor
 from searchdomain import SearchDomain
 from filter import DiscreteFilter
 from policy import MeanPolicy
+from util import getDistance2
 
 m = SearchDomain(100)
-print("theta: ", m.getTargetLocation())
+print("theta: ", m.getTheta())
 
 s = BearingOnlySensor(5.0)
 
@@ -17,9 +18,9 @@ f = DiscreteFilter(m, 25, s)
 
 p = MeanPolicy(d.maxStep, 36)  
 
-while p.getDistance2(d.getPose(), m.getTargetLocation()) > 5:
+while getDistance2(d.getPose(), m.getTheta()) > 5:
     # observe
-    obs = s.observe(m.getTargetLocation(), d.getPose())
+    obs = s.observe(m.getTheta(), d.getPose())
     print("sample obs: ", obs)
 
     # update filter belief

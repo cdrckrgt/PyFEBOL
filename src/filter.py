@@ -27,6 +27,8 @@ class Filter(object):
     def reset(self):
         raise Exception("Please instantitate a specific filter!")
 
+    def getBelief(self):
+        raise Exception("Please instantitate a specific filter!")
 
 class DiscreteFilter(Filter):
     def __init__(self, domain, buckets, sensor):
@@ -35,6 +37,9 @@ class DiscreteFilter(Filter):
         self.sensor = sensor
         self.cellSize = domain.length / buckets
         self.buckets = buckets
+
+    def getBelief(self):
+        return self.df
 
     def update(self, pose, obs):
         '''

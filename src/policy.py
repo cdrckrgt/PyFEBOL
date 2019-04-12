@@ -7,6 +7,7 @@ cdrckrgt@stanford.edu
 policy stuff
 '''
 import numpy as np
+from util import getDistance2
 
 class Policy(object):
     def __init__(self):
@@ -30,11 +31,6 @@ class Policy(object):
         actions.append((0.0, 0.0, 0.0))
         return actions
 
-    def getDistance2(self, p0, p1):
-        dx = p0[0] - p1[0]
-        dy = p0[1] - p1[1]
-        return dx ** 2 + dy ** 2
-    
 class MeanPolicy(Policy):
     def __init__(self, maxStep, numActions, headings=None):
         self.actions = self.makeActionList(maxStep, numActions, headings)
@@ -45,7 +41,7 @@ class MeanPolicy(Policy):
         cx, cy = f.centroid()
         for a in self.actions:
             x_new = vehicle.getNewPose(a)
-            distToMean = self.getDistance2((cx, cy), (x_new[0], x_new[1]))
+            distToMean = getDistance2((cx, cy), x_new)
             if distToMean < bestDist:
                 bestDist = distToMean
                 best = a
