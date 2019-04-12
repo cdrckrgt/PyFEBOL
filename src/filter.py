@@ -46,7 +46,7 @@ class DiscreteFilter(Filter):
                 if self.df[i, j] > 0:
                     x = (i - 0.5) * self.cellSize
                     y = (j - 0.5) * self.cellSize
-                    self.df[i, j] *= self.sensor.prob(self.domain.getTargetLocation(), pose, obs)
+                    self.df[i, j] *= self.sensor.prob((x, y), pose, obs)
                     bucketSum += self.df[i, j]
         for i in range(self.buckets):
             for j in range(self.buckets):

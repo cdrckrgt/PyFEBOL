@@ -18,10 +18,10 @@ other policies?
     not really necessary, maybe a random or mean policy since that's easy
 
 somewhat DONE:
-a search domain for the target to live in
-    needs movement of target
 bearing only sensor
 drone with movement
+discrete filter
+mean policy
 
 DONE:
 
