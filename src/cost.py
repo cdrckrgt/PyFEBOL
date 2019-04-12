@@ -11,7 +11,7 @@ class CostModel(object):
    def __init__(self):
         raise Exception("please instantiate a specific cost model, this is just a base class!")
 
-   def getCost(self):
+   def getCost(self, domain, drone, filter_, action):
         raise Exception("please instantiate a specific cost model, this is just a base class!")
 
 class ConstantCostModel(CostModel):
