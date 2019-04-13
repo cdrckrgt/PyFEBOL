@@ -1,5 +1,5 @@
 '''
-SearchDomain.py
+searchdomain.py
 
 Cedrick Argueta
 cdrckrgt@stanford.edu
