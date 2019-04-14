@@ -46,3 +46,10 @@ class MeanPolicy(Policy):
                 bestDist = distToMean
                 best = a
         return best
+
+class RLPolicy(Policy):
+    def __init__(self, maxStep, numActions, headings=None):
+        self.actions = self.makeActionList(maxStep, numActions, headings)
+
+    def action(self, domain, vehicle, obs, f):
+        raise Exception("please use your reinforcement learning package to select the action!")

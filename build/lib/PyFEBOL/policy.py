@@ -7,7 +7,7 @@ cdrckrgt@stanford.edu
 policy stuff
 '''
 import numpy as np
-from util import getDistance2
+from PyFEBOL import util
 
 class Policy(object):
     def __init__(self):
@@ -41,8 +41,15 @@ class MeanPolicy(Policy):
         cx, cy = f.centroid()
         for a in self.actions:
             x_new = vehicle.getNewPose(a)
-            distToMean = getDistance2((cx, cy), x_new)
+            distToMean = util.getDistance2((cx, cy), x_new)
             if distToMean < bestDist:
                 bestDist = distToMean
                 best = a
         return best
+
+class RLPolicy(Policy):
+    def __init__(self, maxStep, numActions, headings=None):
+        self.actions = self.makeActionList(maxStep, numActions, headings)
+
+    def action(self, domain, vehicle, obs, f):
+        raise Exception("please use your reinforcement learning package to select the action!")

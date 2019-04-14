@@ -98,6 +98,3 @@ class DiscreteFilter(Filter):
                 if x > 0.0:
                     s += x * np.log(x)
         return -s
-
-    def reset(self):
-        self.__init__() # is this bad
