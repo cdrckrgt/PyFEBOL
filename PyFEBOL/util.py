@@ -14,13 +14,12 @@ def getDistance2(p0, p1):
     return dx ** 2 + dy ** 2
 
 def fit180(angle):
-    if angle > 180:
-        angle -= 360.
-    elif angle < -180:
-        angle += 360.
+    angle = np.where(angle > 180, angle - 360, angle)
+    angle = np.where(angle < -180, angle + 360, angle)
     return angle
 
 def getTrueBearing(theta, pose):
+    # can return either scalar bearing or array of bearings through broadcasting
     xr = theta[0] - pose[0]        
     yr = theta[1] - pose[1]        
     return np.degrees(np.arctan2(xr, yr)) % 360.

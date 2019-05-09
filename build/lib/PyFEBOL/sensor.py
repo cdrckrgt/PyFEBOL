@@ -29,4 +29,4 @@ class BearingOnlySensor(Sensor):
     def prob(self, theta, pose, obs):
         bearing = util.getTrueBearing(theta, pose)
         obsDiff = util.fit180(obs - bearing)
-        return norm.pdf(obsDiff, 0, self.sigma)
+        return norm.pdf(obsDiff, 0, self.sigma) # will this return a vector?

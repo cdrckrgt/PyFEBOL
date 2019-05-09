@@ -1,6 +1,5 @@
 README.md
 setup.py
-PyFEBOL/PyFEBOL.py
 PyFEBOL/__init__.py
 PyFEBOL/cost.py
 PyFEBOL/drone.py

@@ -45,18 +45,15 @@ class DiscreteFilter(Filter):
         '''
         updates filter with new information (obs)
         '''
-        bucketSum = 0.0
-        for i in range(self.buckets):
-            for j in range(self.buckets):
-                if self.df[i, j] > 0:
-                    x = (i - 0.5) * self.cellSize
-                    y = (j - 0.5) * self.cellSize
-                    self.df[i, j] *= self.sensor.prob((x, y), pose, obs)
-                    bucketSum += self.df[i, j]
-        for i in range(self.buckets):
-            for j in range(self.buckets):
-                self.df[i, j] /= bucketSum # normalization
-                    
+
+        i, j = np.where(self.df > 0)
+        x = (i - 0.5) * self.cellSize
+        y = (j - 0.5) * self.cellSize
+        
+        dfUpdate = np.zeros(self.df.shape)
+        dfUpdate[i, j] = self.sensor.prob((x, y), pose, obs)
+        self.df *= dfUpdate
+        self.df /= np.sum(self.df)
 
     def centroid(self):
         x = 0
@@ -66,7 +63,6 @@ class DiscreteFilter(Filter):
                 x += (i - 0.5) * self.df[i, j]
                 y += (j - 0.5) * self.df[i, j]
         return x * self.cellSize, y * self.cellSize
-        
 
     def covariance(self):
         mu_x = 0.0
@@ -88,7 +84,10 @@ class DiscreteFilter(Filter):
         c_xx -= (mu_x * mu_x)
         c_yy -= (mu_y * mu_y)
         c_xy -= (mu_x * mu_y)
-        return np.matrix([[c_xx+1e-4, c_xy], [c_xy, c_yy+1e-4]])
+        m = np.matrix([[c_xx+1e-4, c_xy], [c_xy, c_yy+1e-4]])
+        # print("cov mat: ", m)
+        # print("np version: ", np.cov(self.df))
+        return m
 
     def entropy(self):
         s = 0
