@@ -39,7 +39,7 @@ class DiscreteFilter(Filter):
         self.buckets = buckets
 
     def getBelief(self):
-        return self.df
+        return self.df[np.newaxis, :, :] # adding a channel dimension
 
     def update(self, pose, obs):
         '''
