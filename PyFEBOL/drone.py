@@ -27,7 +27,7 @@ class Drone(object):
         return newX, newY, newHeading
 
     def act(self, action):
-        newX, newY, newHeading = self.getNewPose(Action)
+        newX, newY, newHeading = self.getNewPose(action)
         # make sure we stay within bounds
         newX, newY = np.clip([newX, newY], 0, self.searchdomain.length)
         self.x, self.y, self.heading = newX, newY, newHeading
