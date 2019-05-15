@@ -7,6 +7,7 @@ cdrckrgt@stanford.edu
 filter stuff
 '''
 import numpy as np
+import scipy.stats as stats
 
 class Filter(object):
     def __init__(self):
@@ -46,9 +47,9 @@ class DiscreteFilter(Filter):
         updates filter with new information (obs)
         '''
 
-        i, j = np.where(self.df > 0)
-        x = (i - 0.5) * self.cellSize
-        y = (j - 0.5) * self.cellSize
+        i, j = np.where(self.df > 0) # i is for rows, j is for columns
+        x = (j - 0.5) * self.cellSize
+        y = (i - 0.5) * self.cellSize
         
         dfUpdate = np.zeros(self.df.shape)
         dfUpdate[i, j] = self.sensor.prob((x, y), pose, obs)
@@ -90,10 +91,4 @@ class DiscreteFilter(Filter):
         return m
 
     def entropy(self):
-        s = 0
-        for i in range(self.buckets):
-            for j in range(self.buckets):
-                x = self.df[i, j]
-                if x > 0.0:
-                    s += x * np.log(x)
-        return -s
+        return stats.entropy(self.df.flatten())
