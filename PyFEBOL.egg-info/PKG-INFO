@@ -1,6 +1,6 @@
 Metadata-Version: 1.0
 Name: PyFEBOL
-Version: 0.1.5
+Version: 0.1.6
 Summary: Python Filter Exploration for Bearing Only Localization
 Home-page: https://github.com/cdrckrgt/PyFEBOL
 Author: Cedrick Argueta
