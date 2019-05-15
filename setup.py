@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='PyFEBOL',
-      version='0.1.6',
+      version='0.1.7',
       description='Python Filter Exploration for Bearing Only Localization',
       url='https://github.com/cdrckrgt/PyFEBOL',
       author='Cedrick Argueta',
