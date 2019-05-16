@@ -7,6 +7,7 @@ cdrckrgt@stanford.edu
 policy stuff
 '''
 import numpy as np
+import random
 from PyFEBOL import util
 
 class Policy(object):
@@ -53,3 +54,10 @@ class RLPolicy(Policy):
 
     def action(self, domain, vehicle, obs, f):
         raise Exception("please use your reinforcement learning package to select the action!")
+
+class RandomPolicy(Policy):
+    def __init__(self, maxStep, numActions, headings=None):
+        self.actions = self.makeActionList(maxStep, numActions, headings)
+
+    def action(self, *args):
+        return random.choice(self.actions)
