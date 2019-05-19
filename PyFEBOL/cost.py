@@ -85,5 +85,5 @@ class EntropyDistanceCostModel(CostModel):
 
         expectation *= self.lambda_
 
-        return entropy + expectation
+        return -(entropy + expectation) # cost negative to discourage high entropy and collisions
         
