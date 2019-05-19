@@ -26,7 +26,7 @@ class ConstantCostModel(CostModel):
     def getCost(self, domain, drone, filter_, action):
         return self.cost
 
-class SimpleDistanceCostModel(CostModel):
+class DistanceCostModel(CostModel):
     '''
     returns the negative norm of the difference of the position of the target and seeker.
         - incentivizes ending the episode ASAP, lest it continue to accumulate negative rewards
