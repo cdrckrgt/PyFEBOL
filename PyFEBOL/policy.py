@@ -59,5 +59,8 @@ class RandomPolicy(Policy):
     def __init__(self, maxStep, numActions, headings=None):
         self.actions = self.makeActionList(maxStep, numActions, headings)
 
-    def action(self, *args):
-        return random.choice(self.actions)
+    def action(self, k=1):
+        if k == 1:
+            return random.choice(self.actions)
+        else:
+            return random.choices(self.actions, k=k) # useful for vectorization

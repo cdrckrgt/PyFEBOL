@@ -8,6 +8,7 @@ filter stuff
 '''
 import numpy as np
 import scipy.stats as stats
+import copy
 
 
 class Filter(object):
@@ -117,7 +118,13 @@ class Particle(object):
     def __str__(self):
         return str(self.__dict__)
 
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y and self.weight == other.weight
+
 class ParticleFilter(Filter):
+    '''
+    simple particle filter with simple resampling, performed according to effective N updates
+    '''
     def __init__(self, domain, buckets, sensor, policy, nb_particles):
         self.domain = domain
         self.buckets = buckets
@@ -130,8 +137,6 @@ class ParticleFilter(Filter):
             # create a set of uniformly sampled particles with same weight
             x = np.random.uniform(0, domain.length)
             y = np.random.uniform(0, domain.length)
-            assert x < domain.length
-            assert y < domain.length
             weight = 1.0 / self.nb_particles
             particle = Particle(x, y, weight, self.policy, self.domain)
             self.particles.append(particle)
@@ -141,15 +146,15 @@ class ParticleFilter(Filter):
         f = np.zeros((self.buckets, self.buckets)) / (self.buckets ** 2) # buckets is num buckets per side
         for particle in self.particles:
             x, y = particle.getPose()
-            i = min(int(x // self.cellSize), self.buckets - 1) # prevents out of bounds due to particles clipping at edge of domain
-            j = min(int(y // self.cellSize), self.buckets - 1)
+            j = min(int(x // self.cellSize), self.buckets - 1) # prevents out of bounds due to particles clipping at edge of domain
+            i = min(int(y // self.cellSize), self.buckets - 1) # notice flipped x and y
             f[i, j] += particle.weight
-        return f[np.newaxis, :, :]
+        return f[np.newaxis, :, :] # add channel dimension
 
     def _predictParticles(self):
         for particle in self.particles:
             particle.move()
-            
+ 
     def _updateParticles(self, pose, obs):
         total_weight = 0
         for particle in self.particles:
@@ -159,9 +164,28 @@ class ParticleFilter(Filter):
         for particle in self.particles:
             particle.weight /= total_weight
 
+    def _stratifiedResample(self):
+        weights = [particle.weight for particle in self.particles]
+        out = []
+        cumsum = np.cumsum(weights)
+        cumsum[-1] = 1.
+        for i in range(self.nb_particles):
+            idx = np.searchsorted(cumsum, (np.random.randn() + i) / self.nb_particles)
+            out.append(copy.deepcopy(self.particles[i]))
+        self.particles = out
+        for particle in self.particles:
+            particle.weight = 1.0 / self.nb_particles
+
+    def _resampleParticles(self):
+        weights = np.array([particle.weight for particle in self.particles])
+        weights /= weights.sum() # avoid floating point errors through normalization
+        if (1. / np.sum(np.square(weights)) < self.nb_particles / 2):
+            self._stratifiedResample()
+
     def update(self, pose, obs):
         self._predictParticles()
         self._updateParticles(pose, obs)
+        self._resampleParticles()
 
     def entropy(self):
         f = self.getBelief()
