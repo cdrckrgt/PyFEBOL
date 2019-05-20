@@ -7,6 +7,7 @@ PyFEBOL/filter.py
 PyFEBOL/policy.py
 PyFEBOL/searchdomain.py
 PyFEBOL/sensor.py
+PyFEBOL/test.py
 PyFEBOL/util.py
 PyFEBOL.egg-info/PKG-INFO
 PyFEBOL.egg-info/SOURCES.txt
