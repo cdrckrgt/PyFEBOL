@@ -9,6 +9,7 @@ filter stuff
 import numpy as np
 import scipy.stats as stats
 
+
 class Filter(object):
     def __init__(self):
         raise Exception("Please instantitate a specific filter!")
@@ -92,3 +93,84 @@ class DiscreteFilter(Filter):
 
     def entropy(self):
         return stats.entropy(self.df.flatten())
+
+class Particle(object):
+    def __init__(self, x, y, weight, policy, domain):
+        self.x = x
+        self.y = y
+        self.weight = weight
+        self.policy = policy
+        self.domain = domain
+
+    def move(self):
+        action = self.policy.action()
+        
+        newX = self.x + action[0]
+        newY = self.y + action[1]
+        newX, newY = np.clip([newX, newY], 0, self.domain.length)
+        
+        self.x, self.y = newX, newY
+       
+    def getPose(self):
+        return self.x, self.y
+
+    def __str__(self):
+        return str(self.__dict__)
+
+class ParticleFilter(Filter):
+    def __init__(self, domain, buckets, sensor, policy, nb_particles):
+        self.domain = domain
+        self.buckets = buckets
+        self.sensor = sensor
+        self.policy = policy # generative model for updating particle positions
+        self.cellSize = domain.length / buckets
+        self.nb_particles = nb_particles
+        self.particles = []
+        for i in range(self.nb_particles):
+            # create a set of uniformly sampled particles with same weight
+            x = np.random.uniform(0, domain.length)
+            y = np.random.uniform(0, domain.length)
+            assert x < domain.length
+            assert y < domain.length
+            weight = 1.0 / self.nb_particles
+            particle = Particle(x, y, weight, self.policy, self.domain)
+            self.particles.append(particle)
+
+    def getBelief(self):
+        # discretize belief for input into neural net
+        f = np.zeros((self.buckets, self.buckets)) / (self.buckets ** 2) # buckets is num buckets per side
+        for particle in self.particles:
+            x, y = particle.getPose()
+            i = min(int(x // self.cellSize), self.buckets - 1) # prevents out of bounds due to particles clipping at edge of domain
+            j = min(int(y // self.cellSize), self.buckets - 1)
+            f[i, j] += particle.weight
+        return f[np.newaxis, :, :]
+
+    def _predictParticles(self):
+        for particle in self.particles:
+            particle.move()
+            
+    def _updateParticles(self, pose, obs):
+        total_weight = 0
+        for particle in self.particles:
+            prob = self.sensor.prob(particle.getPose(), pose, obs)
+            particle.weight *= prob # likelihood * prior
+            total_weight += particle.weight
+        for particle in self.particles:
+            particle.weight /= total_weight
+
+    def update(self, pose, obs):
+        self._predictParticles()
+        self._updateParticles(pose, obs)
+
+    def entropy(self):
+        f = self.getBelief()
+        return stats.entropy(f.flatten()) 
+
+    def centroid(self):
+        x_positions = [particle.x for particle in self.particles]
+        y_positions = [particle.y for particle in self.particles]
+        weights = [particle.weight for particle in self.particles]
+        mean_x = np.average(x_positions, weights=weights)
+        mean_y = np.average(y_positions, weights=weights)
+        return mean_x, mean_y
