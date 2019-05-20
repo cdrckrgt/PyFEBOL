@@ -9,7 +9,7 @@ from util import getDistance2
 m = SearchDomain(100.0)
 print("theta: ", m.getTheta())
 
-s = BearingOnlySensor(5.0)
+s = FOVSensor(0.1, 120., 25)
 
 d = Drone(25, 25, 60, 2.0, s, m)
 print("drone pose: ", d.getPose())
