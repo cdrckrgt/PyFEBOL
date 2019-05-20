@@ -8,7 +8,6 @@ filter stuff
 '''
 import numpy as np
 import scipy.stats as stats
-import copy
 
 
 class Filter(object):
@@ -94,6 +93,7 @@ class DiscreteFilter(Filter):
 
     def entropy(self):
         return stats.entropy(self.df.flatten())
+
 class ParticleFilter(Filter):
     '''
     simple particle filter with simple resampling, performed according to effective N updates
