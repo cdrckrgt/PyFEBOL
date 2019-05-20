@@ -48,36 +48,36 @@ class FOVSensor(Sensor):
             return self.alpha
 
     def observe(self, theta, pose):
-        truth = util.getTrueBearing(theta, pose)
+        truth = util.getTrueBearing(pose, theta)
         rel_bearing = np.absolute(util.fit180(pose[2] - truth))
 
         if type(rel_bearing) == np.ndarray:
             prob_in_view = np.vectorize(self._getProb)(rel_bearing)
-            distance = util.getDistance2(theta, pose)
+            distance = util.getDistance2(pose, theta)
             prob_in_view[np.where(distance > self.blind_distance ** 2)] = 0.5
-            obs = np.where(np.random.randn(len(distance)) < prob_in_view, 0, 1)
+            obs = np.where(np.random.randn(len(rel_bearing)) < prob_in_view, 0, 1)
             return obs
         else:
             prob_in_view = self._getProb(rel_bearing)
-            distance = util.getDistance2(theta, pose)
+            distance = util.getDistance2(pose, theta)
             if distance > self.blind_distance ** 2:
                 prob_in_view = 0.5
             obs = 0 if np.random.randn() < prob_in_view else 1
             return obs
 
     def prob(self, theta, pose, obs):
-        truth = util.getTrueBearing(theta, pose)
+        truth = util.getTrueBearing(pose, theta)
         rel_bearing = np.absolute(util.fit180(pose[2] - truth))
 
         if type(rel_bearing) == np.ndarray:
             prob_in_view = np.vectorize(self._getProb)(rel_bearing)
-            distance = util.getDistance2(theta, pose)
+            distance = util.getDistance2(pose, theta)
             prob_in_view[np.where(distance > self.blind_distance ** 2)] = 0.5
             prob = np.where(obs == 1, prob_in_view, 1.0 - prob_in_view)
             return prob
         else:
             prob_in_view = self._getProb(rel_bearing)
-            distance = util.getDistance2(theta, pose)
+            distance = util.getDistance2(pose, theta)
             if distance > self.blind_distance ** 2:
                 prob_in_view = 0.5
             if obs == 1:
