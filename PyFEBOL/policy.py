@@ -63,4 +63,4 @@ class RandomPolicy(Policy):
         if k == 1:
             return random.choice(self.actions)
         else:
-            return random.choices(self.actions, k=k) # useful for vectorization
+            return np.array(random.choices(self.actions, k=k)) # useful for vectorization

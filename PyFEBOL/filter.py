@@ -94,33 +94,6 @@ class DiscreteFilter(Filter):
 
     def entropy(self):
         return stats.entropy(self.df.flatten())
-
-class Particle(object):
-    def __init__(self, x, y, weight, policy, domain):
-        self.x = x
-        self.y = y
-        self.weight = weight
-        self.policy = policy
-        self.domain = domain
-
-    def move(self):
-        action = self.policy.action()
-        
-        newX = self.x + action[0]
-        newY = self.y + action[1]
-        newX, newY = np.clip([newX, newY], 0, self.domain.length)
-        
-        self.x, self.y = newX, newY
-       
-    def getPose(self):
-        return self.x, self.y
-
-    def __str__(self):
-        return str(self.__dict__)
-
-    def __eq__(self, other):
-        return self.x == other.x and self.y == other.y and self.weight == other.weight
-
 class ParticleFilter(Filter):
     '''
     simple particle filter with simple resampling, performed according to effective N updates
@@ -132,54 +105,48 @@ class ParticleFilter(Filter):
         self.policy = policy # generative model for updating particle positions
         self.cellSize = domain.length / buckets
         self.nb_particles = nb_particles
-        self.particles = []
-        for i in range(self.nb_particles):
-            # create a set of uniformly sampled particles with same weight
-            x = np.random.uniform(0, domain.length)
-            y = np.random.uniform(0, domain.length)
-            weight = 1.0 / self.nb_particles
-            particle = Particle(x, y, weight, self.policy, self.domain)
-            self.particles.append(particle)
+        self.x_particles = np.random.uniform(0, domain.length, self.nb_particles)
+        self.y_particles = np.random.uniform(0, domain.length, self.nb_particles)
+        self.weights = np.ones(self.nb_particles) / self.nb_particles
 
     def getBelief(self):
         # discretize belief for input into neural net
         f = np.zeros((self.buckets, self.buckets)) / (self.buckets ** 2) # buckets is num buckets per side
-        for particle in self.particles:
-            x, y = particle.getPose()
-            j = min(int(x // self.cellSize), self.buckets - 1) # prevents out of bounds due to particles clipping at edge of domain
-            i = min(int(y // self.cellSize), self.buckets - 1) # notice flipped x and y
-            f[i, j] += particle.weight
+        j = np.minimum((self.x_particles // self.cellSize), self.buckets - 1).astype(int)
+        i = np.minimum((self.y_particles // self.cellSize), self.buckets - 1).astype(int)
+        f[i, j] = self.weights
         return f[np.newaxis, :, :] # add channel dimension
 
     def _predictParticles(self):
-        for particle in self.particles:
-            particle.move()
- 
+        moves = self.policy.action(self.nb_particles)
+        self.x_particles += moves[:, 0]
+        self.y_particles += moves[:, 1]
+        self.x_particles = np.clip(self.x_particles, 0, self.domain.length)
+        self.y_particles = np.clip(self.y_particles, 0, self.domain.length)
+        
     def _updateParticles(self, pose, obs):
-        total_weight = 0
-        for particle in self.particles:
-            prob = self.sensor.prob(particle.getPose(), pose, obs)
-            particle.weight *= prob # likelihood * prior
-            total_weight += particle.weight
-        for particle in self.particles:
-            particle.weight /= total_weight
+        prob = self.sensor.prob((self.x_particles, self.y_particles), pose, obs)
+        self.weights *= prob
+        self.weights /= self.weights.sum()
 
     def _stratifiedResample(self):
-        weights = [particle.weight for particle in self.particles]
-        out = []
-        cumsum = np.cumsum(weights)
-        cumsum[-1] = 1.
-        for i in range(self.nb_particles):
-            idx = np.searchsorted(cumsum, (np.random.randn() + i) / self.nb_particles)
-            out.append(copy.deepcopy(self.particles[i]))
-        self.particles = out
-        for particle in self.particles:
-            particle.weight = 1.0 / self.nb_particles
+        positions = (np.random.randn(self.nb_particles) + range(self.nb_particles)) / self.nb_particles
+        cumsum = np.cumsum(self.weights)
+        idxs = np.zeros(self.nb_particles, dtype=int)
+        i, j = 0, 0
+        while i < self.nb_particles: # for all subdivisions
+            # lazy eval for j, since sometimes our floating points get too close to 1.0
+            if (j == self.nb_particles - 1) or (positions[i] < cumsum[j]): 
+                idxs[i] = j # choose this particle in subdivision
+                i += 1 # move index to next subdivision
+            else: # move onto next particle in subdivision
+                j += 1
+        self.x_particles = self.x_particles[idxs]
+        self.y_particles = self.y_particles[idxs]
+        self.weights = np.ones(self.nb_particles) / self.nb_particles
 
     def _resampleParticles(self):
-        weights = np.array([particle.weight for particle in self.particles])
-        weights /= weights.sum() # avoid floating point errors through normalization
-        if (1. / np.sum(np.square(weights)) < self.nb_particles / 2):
+        if ((1. / np.sum(np.square(self.weights))) < (self.nb_particles / 2)):
             self._stratifiedResample()
 
     def update(self, pose, obs):
@@ -192,9 +159,6 @@ class ParticleFilter(Filter):
         return stats.entropy(f.flatten()) 
 
     def centroid(self):
-        x_positions = [particle.x for particle in self.particles]
-        y_positions = [particle.y for particle in self.particles]
-        weights = [particle.weight for particle in self.particles]
-        mean_x = np.average(x_positions, weights=weights)
-        mean_y = np.average(y_positions, weights=weights)
+        mean_x = np.average(self.x_particles, weights=self.weights)
+        mean_y = np.average(self.y_particles, weights=self.weights)
         return mean_x, mean_y
