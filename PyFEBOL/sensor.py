@@ -32,6 +32,7 @@ class BearingOnlySensor(Sensor):
         return norm.pdf(obsDiff, 0, self.sigma) # will this return a vector?
 
 class FOVSensor(Sensor):
+    # requires headings to be input if you want something good...
     def __init__(self, alpha, cone_width, blind_distance):
         self.alpha = alpha
         self.cone_width = cone_width
