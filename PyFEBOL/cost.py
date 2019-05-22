@@ -72,8 +72,8 @@ class EntropyDistanceCostModel(CostModel):
         while not it.finished:
             prob = it[0] # value of prob in this bucket
             idx = it.multi_index # index of this bucket in filter (channel, x, y)
-            x = (idx[1] - 0.5) * filter_.cellSize
-            y = (idx[2] - 0.5) * filter_.cellSize
+            x = (idx[1] + 0.5) * filter_.cellSize
+            y = (idx[2] + 0.5) * filter_.cellSize
             
             x_seeker, y_seeker, _ = drone.getPose()
             norm = np.linalg.norm(np.array([x, y]) - np.array([x_seeker, y_seeker]))
@@ -104,8 +104,8 @@ class HighestProbDistanceCostModel(CostModel):
         while not it.finished:
             prob = it[0] # value of prob in this bucket
             idx = it.multi_index # index of this bucket in filter (channel, x, y)
-            x = (idx[1] - 0.5) * filter_.cellSize
-            y = (idx[2] - 0.5) * filter_.cellSize
+            x = (idx[1] + 0.5) * filter_.cellSize
+            y = (idx[2] + 0.5) * filter_.cellSize
             
             x_seeker, y_seeker, _ = drone.getPose()
             norm = np.linalg.norm(np.array([x, y]) - np.array([x_seeker, y_seeker]))
@@ -120,6 +120,10 @@ class HighestProbDistanceCostModel(CostModel):
         return (max_prob - expectation)
 
 class MaxEigenvalDistanceCostModel(CostModel):
+    '''
+    max eigenvalue of covariance matrix corresponds to variance in most uncertain direction
+    penalize this and also near-collisions
+    '''
     def __init__(self, lambda_, threshold):
         self.lambda_ = lambda_
         self.threshold = threshold
@@ -133,8 +137,8 @@ class MaxEigenvalDistanceCostModel(CostModel):
         while not it.finished:
             prob = it[0] # value of prob in this bucket
             idx = it.multi_index # index of this bucket in filter (channel, x, y)
-            x = (idx[1] - 0.5) * filter_.cellSize
-            y = (idx[2] - 0.5) * filter_.cellSize
+            x = (idx[1] + 0.5) * filter_.cellSize
+            y = (idx[2] + 0.5) * filter_.cellSize
             
             x_seeker, y_seeker, _ = drone.getPose()
             norm = np.linalg.norm(np.array([x, y]) - np.array([x_seeker, y_seeker]))

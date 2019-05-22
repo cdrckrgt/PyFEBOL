@@ -58,14 +58,13 @@ class DiscreteFilter(Filter):
         self.df /= np.sum(self.df)
 
     def centroid(self):
-        x = 0
-        y = 0
-        for i in range(self.buckets):
-            for j in range(self.buckets):
-                x += (i + 0.5) * self.df[i, j]
-                y += (j + 0.5) * self.df[i, j]
-        return x * self.cellSize, y * self.cellSize
+        centers = (np.arange(self.buckets) + 0.5) * self.cellSize
 
+        mu_x = np.sum(np.dot(self.df.T, centers))
+        mu_y = np.sum(np.dot(self.df, centers))
+
+        return mu_x, mu_y
+        
     def covariance(self):
         centers = (np.arange(self.buckets) + 0.5) * self.cellSize
 
@@ -102,10 +101,7 @@ class ParticleFilter(Filter):
         f = np.zeros((self.buckets, self.buckets)) / (self.buckets ** 2) # buckets is num buckets per side
         j = np.minimum((self.x_particles // self.cellSize), self.buckets - 1).astype(int)
         i = np.minimum((self.y_particles // self.cellSize), self.buckets - 1).astype(int)
-        # np.add.at(f, (i, j), self.weights)
-        for idx, pair in enumerate(zip(i, j)):
-            idx_i, idx_j = pair
-            f[idx_i, idx_j] += self.weights[idx]
+        np.add.at(f, (i, j), self.weights)
         return f[np.newaxis, :, :] # add channel dimension
 
     def _predictParticles(self):
