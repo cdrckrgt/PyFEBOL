@@ -87,3 +87,34 @@ class EntropyDistanceCostModel(CostModel):
 
         return -(entropy + expectation) # cost negative to discourage high entropy and collisions
         
+class HighestProbDistanceCostModel(CostModel):
+    '''
+    rewards highest prob in a bucket
+    penalizes near collisions
+    '''
+    def __init__(self, lambda_, threshold):
+        self.lambda_ = selmbda_
+        self.threshold = threshold
+
+    def getCost(self, domain, drone, filter_, action):
+        max_prob = filter_.getBelief().max()
+        
+        it = np.nditer(filter_.getBelief(), flags=['multi_index'])
+        expectation = 0
+        while not it.finished:
+            prob = it[0] # value of prob in this bucket
+            idx = it.multi_index # index of this bucket in filter (channel, x, y)
+            x = (idx[1] - 0.5) * filter_.cellSize
+            y = (idx[2] - 0.5) * filter_.cellSize
+            
+            x_seeker, y_seeker, _ = drone.getPose()
+            norm = np.linalg.norm(np.array([x, y]) - np.array([x_seeker, y_seeker]))
+
+            if norm < self.threshold: # if there's a collision for this bin
+                expectation += prob
+
+            it.iternext()
+
+        expectation *= self.lambda_
+
+        return max_prob - expectation
