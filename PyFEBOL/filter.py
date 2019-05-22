@@ -49,8 +49,8 @@ class DiscreteFilter(Filter):
         '''
 
         i, j = np.where(self.df > 0) # i is for rows, j is for columns
-        x = (j - 0.5) * self.cellSize
-        y = (i - 0.5) * self.cellSize
+        x = (j + 0.5) * self.cellSize
+        y = (i + 0.5) * self.cellSize
         
         dfUpdate = np.zeros(self.df.shape)
         dfUpdate[i, j] = self.sensor.prob((x, y), pose, obs)
@@ -62,34 +62,22 @@ class DiscreteFilter(Filter):
         y = 0
         for i in range(self.buckets):
             for j in range(self.buckets):
-                x += (i - 0.5) * self.df[i, j]
-                y += (j - 0.5) * self.df[i, j]
+                x += (i + 0.5) * self.df[i, j]
+                y += (j + 0.5) * self.df[i, j]
         return x * self.cellSize, y * self.cellSize
 
     def covariance(self):
-        mu_x = 0.0
-        mu_y = 0.0
-        c_xx = 0.0
-        c_xy = 0.0
-        c_yy = 0.0
-        for i in range(self.buckets):
-            for j in range(self.buckets):
-                x = (i - 0.5) * self.cellSize
-                y = (j - 0.5) * self.cellSize
+        centers = (np.arange(self.buckets) + 0.5) * self.cellSize
 
-                mu_x += x * self.df[i, j]
-                mu_y += y * self.df[i, j]
+        mu_x = np.sum(np.dot(self.df.T, centers))
+        mu_y = np.sum(np.dot(self.df, centers))
+        c_xx = np.sum(np.dot(self.df.T, centers ** 2)) - mu_x ** 2
+        c_yy = np.sum(np.dot(self.df, centers ** 2)) - mu_y ** 2
+        c_xy = np.sum(self.df.T * np.outer(centers, centers)) - mu_x * mu_y
 
-                c_xx += self.df[i, j] * x * x
-                c_yy += self.df[i, j] * y * y
-                c_xy += self.df[i, j] * x * y
-        c_xx -= (mu_x * mu_x)
-        c_yy -= (mu_y * mu_y)
-        c_xy -= (mu_x * mu_y)
-        m = np.matrix([[c_xx+1e-4, c_xy], [c_xy, c_yy+1e-4]])
-        # print("cov mat: ", m)
-        # print("np version: ", np.cov(self.df))
+        m = np.array([[c_xx+1e-200, c_xy], [c_xy, c_yy+1e-200]])
         return m
+
 
     def entropy(self):
         return stats.entropy(self.df.flatten())
@@ -114,6 +102,7 @@ class ParticleFilter(Filter):
         f = np.zeros((self.buckets, self.buckets)) / (self.buckets ** 2) # buckets is num buckets per side
         j = np.minimum((self.x_particles // self.cellSize), self.buckets - 1).astype(int)
         i = np.minimum((self.y_particles // self.cellSize), self.buckets - 1).astype(int)
+        # np.add.at(f, (i, j), self.weights)
         for idx, pair in enumerate(zip(i, j)):
             idx_i, idx_j = pair
             f[idx_i, idx_j] += self.weights[idx]
@@ -137,7 +126,7 @@ class ParticleFilter(Filter):
         idxs = np.zeros(self.nb_particles, dtype=int)
         i, j = 0, 0
         while i < self.nb_particles: # for all subdivisions
-            # lazy eval for j, since sometimes our floating points get too close to 1.0
+            # short circuit j, since sometimes our floating points get too close to 1.0
             if (j == self.nb_particles - 1) or (positions[i] < cumsum[j]): 
                 idxs[i] = j # choose this particle in subdivision
                 i += 1 # move index to next subdivision
@@ -164,3 +153,16 @@ class ParticleFilter(Filter):
         mean_x = np.average(self.x_particles, weights=self.weights)
         mean_y = np.average(self.y_particles, weights=self.weights)
         return mean_x, mean_y
+    
+    def covariance(self):
+        f = self.getBelief().squeeze(0)
+        centers = (np.arange(self.buckets) + 0.5) * self.cellSize
+
+        mu_x = np.sum(np.dot(f.T, centers))
+        mu_y = np.sum(np.dot(f, centers))
+        c_xx = np.sum(np.dot(f.T, centers ** 2)) - mu_x ** 2
+        c_yy = np.sum(np.dot(f, centers ** 2)) - mu_y ** 2
+        c_xy = np.sum(f.T * np.outer(centers, centers)) - mu_x * mu_y
+
+        m = np.array([[c_xx+1e-200, c_xy], [c_xy, c_yy+1e-200]])
+        return m
