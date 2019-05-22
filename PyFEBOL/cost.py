@@ -93,7 +93,7 @@ class HighestProbDistanceCostModel(CostModel):
     penalizes near collisions
     '''
     def __init__(self, lambda_, threshold):
-        self.lambda_ = selmbda_
+        self.lambda_ = lambda_
         self.threshold = threshold
 
     def getCost(self, domain, drone, filter_, action):
@@ -117,4 +117,4 @@ class HighestProbDistanceCostModel(CostModel):
 
         expectation *= self.lambda_
 
-        return max_prob - expectation
+        return 10 * (max_prob - expectation)

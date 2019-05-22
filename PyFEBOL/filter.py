@@ -114,7 +114,9 @@ class ParticleFilter(Filter):
         f = np.zeros((self.buckets, self.buckets)) / (self.buckets ** 2) # buckets is num buckets per side
         j = np.minimum((self.x_particles // self.cellSize), self.buckets - 1).astype(int)
         i = np.minimum((self.y_particles // self.cellSize), self.buckets - 1).astype(int)
-        f[i, j] = self.weights
+        for idx, pair in enumerate(zip(i, j)):
+            idx_i, idx_j = pair
+            f[idx_i, idx_j] += self.weights[idx]
         return f[np.newaxis, :, :] # add channel dimension
 
     def _predictParticles(self):
