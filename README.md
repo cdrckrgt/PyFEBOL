@@ -14,7 +14,7 @@ Currently provides:
 - a policy class that allows for creation of seeker and target policies
 - a search domain for the seeker and target to live in
 
-Also check out [https://github.com/cdrckrgt/drone-deep-rl](this link) for an implementation of DQN that works with multiple inputs, and a gym environment that uses all the stuff from PyFEBOL.
+Also check out [https://github.com/cdrckrgt/deep-drone-localization](deep-drone-localtization) for an implementation of DQN that works with multiple inputs, and a gym environment that uses all the stuff from PyFEBOL.
 
 ## Installation
 
