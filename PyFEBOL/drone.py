@@ -26,11 +26,12 @@ class Drone(object):
         newHeading = (self.heading + action[2]) % 360. # ensuring that heading remains within 360 degrees
         return newX, newY, newHeading
 
-    def act(self, action):
-        newX, newY, newHeading = self.getNewPose(action)
-        # make sure we stay within bounds
-        newX, newY = np.clip([newX, newY], 0, self.searchdomain.length)
-        self.x, self.y, self.heading = newX, newY, newHeading
+    def act(self, action, nb_act_repeat=1):
+        for _ in range(nb_act_repeat):
+            newX, newY, newHeading = self.getNewPose(action)
+            # make sure we stay within bounds
+            newX, newY = np.clip([newX, newY], 0, self.searchdomain.length)
+            self.x, self.y, self.heading = newX, newY, newHeading
 
     def observe(self, searchdomain):
         return self.sensor.observe(searchdomain.getTheta(), self.getPose())

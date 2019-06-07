@@ -32,6 +32,14 @@ class Filter(object):
     def getBelief(self):
         raise Exception("Please instantitate a specific filter!")
 
+    def maxEigenvalue(self):
+        raise Exception("Please instantitate a specific filter!")
+
+    def maxProbBucket(self):
+        raise Exception("Please instantitate a specific filter!")
+
+
+
 class DiscreteFilter(Filter):
     def __init__(self, domain, buckets, sensor):
         self.domain = domain
@@ -77,9 +85,15 @@ class DiscreteFilter(Filter):
         m = np.array([[c_xx+1e-200, c_xy], [c_xy, c_yy+1e-200]])
         return m
 
-
     def entropy(self):
         return stats.entropy(self.df.flatten())
+
+    def maxEigenvalue(self):
+        w, v = np.linalg.eig(self.covariance())
+        return np.max(w)
+    
+    def maxProbBucket(self):
+        return self.getBelief().max()
 
 class ParticleFilter(Filter):
     '''
@@ -117,7 +131,7 @@ class ParticleFilter(Filter):
         self.weights /= self.weights.sum()
 
     def _stratifiedResample(self):
-        positions = (np.random.randn(self.nb_particles) + range(self.nb_particles)) / self.nb_particles
+        positions = (np.random.rand(self.nb_particles) + range(self.nb_particles)) / self.nb_particles
         cumsum = np.cumsum(self.weights)
         idxs = np.zeros(self.nb_particles, dtype=int)
         i, j = 0, 0
@@ -162,3 +176,10 @@ class ParticleFilter(Filter):
 
         m = np.array([[c_xx+1e-200, c_xy], [c_xy, c_yy+1e-200]])
         return m
+    
+    def maxEigenvalue(self):
+        w, v = np.linalg.eig(self.covariance())
+        return np.max(w)
+    
+    def maxProbBucket(self):
+        return self.getBelief().max()

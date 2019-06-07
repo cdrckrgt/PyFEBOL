@@ -74,7 +74,7 @@ class EntropyDistanceCostModel(CostModel):
             idx = it.multi_index # index of this bucket in filter (channel, x, y)
             x = (idx[1] + 0.5) * filter_.cellSize
             y = (idx[2] + 0.5) * filter_.cellSize
-            
+ 
             x_seeker, y_seeker, _ = drone.getPose()
             norm = np.linalg.norm(np.array([x, y]) - np.array([x_seeker, y_seeker]))
 
@@ -97,7 +97,7 @@ class HighestProbDistanceCostModel(CostModel):
         self.threshold = threshold
 
     def getCost(self, domain, drone, filter_, action):
-        max_prob = filter_.getBelief().max()
+        max_prob = filter_.maxProbBucket()
         
         it = np.nditer(filter_.getBelief(), flags=['multi_index'])
         expectation = 0
@@ -106,7 +106,7 @@ class HighestProbDistanceCostModel(CostModel):
             idx = it.multi_index # index of this bucket in filter (channel, x, y)
             x = (idx[1] + 0.5) * filter_.cellSize
             y = (idx[2] + 0.5) * filter_.cellSize
-            
+ 
             x_seeker, y_seeker, _ = drone.getPose()
             norm = np.linalg.norm(np.array([x, y]) - np.array([x_seeker, y_seeker]))
 
@@ -129,8 +129,7 @@ class MaxEigenvalDistanceCostModel(CostModel):
         self.threshold = threshold
 
     def getCost(self, domain, drone, filter_, action):
-        w, v = np.linalg.eig(filter_.covariance())
-        max_eig = np.max(w)
+        max_eig = filter_.maxEigenvalue()
 
         it = np.nditer(filter_.getBelief(), flags=['multi_index'])
         expectation = 0
