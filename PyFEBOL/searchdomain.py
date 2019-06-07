@@ -17,16 +17,17 @@ class SearchDomain(object):
             self.theta = (np.random.rand() * self.length, np.random.rand() * self.length)  # random RF source location
         self.policy = policy
 
-    def moveTarget(self):
+    def moveTarget(self, nb_act_repeat=1):
         if self.policy is None:
             return
-        action = self.policy.action() # in the future, might be useful to include other information like seeker position, filter, etc.
-        
-        newX = self.theta[0] + action[0]
-        newY = self.theta[1] + action[1]
-        newX, newY = np.clip([newX, newY], 0, self.length)
-        
-        self.theta = newX, newY
+        for _ in range(nb_act_repeat):
+            action = self.policy.action() # in the future, might be useful to include other information like seeker position, filter, etc.
+            
+            newX = self.theta[0] + action[0]
+            newY = self.theta[1] + action[1]
+            newX, newY = np.clip([newX, newY], 0, self.length)
+            
+            self.theta = newX, newY
         
  
     def getTheta(self):
