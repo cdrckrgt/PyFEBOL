@@ -116,7 +116,9 @@ class ParticleFilter(Filter):
         j = np.minimum((self.x_particles // self.cellSize), self.buckets - 1).astype(int)
         i = np.minimum((self.y_particles // self.cellSize), self.buckets - 1).astype(int)
         np.add.at(f, (i, j), self.weights)
-        return f[np.newaxis, :, :] # add channel dimension
+        f = f[np.newaxis, :, :] # add channel dimension
+        assert not np.any(f == np.nan), 'belief matrix contains nan values'
+        return f
 
     def _predictParticles(self):
         moves = self.policy.action(self.nb_particles)
@@ -137,7 +139,8 @@ class ParticleFilter(Filter):
         i, j = 0, 0
         while i < self.nb_particles: # for all subdivisions
             # short circuit j, since sometimes our floating points get too close to 1.0
-            if (j == self.nb_particles - 1) or (positions[i] < cumsum[j]): 
+            # if (j == self.nb_particles - 1) or (positions[i] < cumsum[j]): 
+            if (positions[i] < cumsum[j]): 
                 idxs[i] = j # choose this particle in subdivision
                 i += 1 # move index to next subdivision
             else: # move onto next particle in subdivision

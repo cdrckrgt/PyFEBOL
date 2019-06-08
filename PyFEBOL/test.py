@@ -41,6 +41,7 @@ while getDistance2(d.getPose(), m.getTheta()) > 5 and num_steps < 100:
     # update filter belief
     f.update(d.getPose(), obs)
     print('entropy: ', f.entropy())
+    print('max prob: ', f.maxProbBucket())
 
     # calculate action
     a = p.action(m, d, obs, f)
