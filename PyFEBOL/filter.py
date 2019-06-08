@@ -117,7 +117,7 @@ class ParticleFilter(Filter):
         i = np.minimum((self.y_particles // self.cellSize), self.buckets - 1).astype(int)
         np.add.at(f, (i, j), self.weights)
         f = f[np.newaxis, :, :] # add channel dimension
-        assert not np.any(f == np.nan), 'belief matrix contains nan values'
+        assert not np.any(np.isnan(f)), 'belief matrix contains nan values'
         return f
 
     def _predictParticles(self):
@@ -132,7 +132,7 @@ class ParticleFilter(Filter):
         old_weights = self.weights
         self.weights *= prob
         self.weights /= self.weights.sum()
-        assert not np.any(self.weights == np.nan), 'weights contain nan values: weights: {}, sum: {}, weights before update: {}'.format(self.weights, self.weights.sum(), old_weights)
+        assert not np.any(np.isnan(self.weights)), 'weights contain nan values: weights: {}, sum: {}, weights before update: {}'.format(self.weights, self.weights.sum(), old_weights)
 
     def _stratifiedResample(self):
         positions = (np.random.rand(self.nb_particles) + range(self.nb_particles)) / self.nb_particles
