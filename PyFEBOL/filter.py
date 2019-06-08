@@ -129,8 +129,10 @@ class ParticleFilter(Filter):
         
     def _updateParticles(self, pose, obs):
         prob = self.sensor.prob((self.x_particles, self.y_particles), pose, obs)
+        old_weights = self.weights
         self.weights *= prob
         self.weights /= self.weights.sum()
+        assert not np.any(self.weights == np.nan), 'weights contain nan values: weights: {}, sum: {}, weights before update: {}'.format(self.weights, self.weights.sum(), old_weights)
 
     def _stratifiedResample(self):
         positions = (np.random.rand(self.nb_particles) + range(self.nb_particles)) / self.nb_particles
@@ -139,8 +141,7 @@ class ParticleFilter(Filter):
         i, j = 0, 0
         while i < self.nb_particles: # for all subdivisions
             # short circuit j, since sometimes our floating points get too close to 1.0
-            # if (j == self.nb_particles - 1) or (positions[i] < cumsum[j]): 
-            if (positions[i] < cumsum[j]): 
+            if (j == self.nb_particles - 1) or (positions[i] < cumsum[j]): 
                 idxs[i] = j # choose this particle in subdivision
                 i += 1 # move index to next subdivision
             else: # move onto next particle in subdivision
