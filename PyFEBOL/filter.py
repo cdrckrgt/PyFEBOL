@@ -82,7 +82,7 @@ class DiscreteFilter(Filter):
         c_yy = np.sum(np.dot(self.df, centers ** 2)) - mu_y ** 2
         c_xy = np.sum(self.df.T * np.outer(centers, centers)) - mu_x * mu_y
 
-        m = np.array([[c_xx+1e-200, c_xy], [c_xy, c_yy+1e-200]])
+        m = np.array([[c_xx+1e-15, c_xy], [c_xy, c_yy+1e-15]])
         return m
 
     def entropy(self):
@@ -117,7 +117,7 @@ class ParticleFilter(Filter):
         i = np.minimum((self.y_particles // self.cellSize), self.buckets - 1).astype(int)
         np.add.at(f, (i, j), self.weights)
         f = f[np.newaxis, :, :] # add channel dimension
-        assert not np.any(np.isnan(f)), 'belief matrix contains nan values'
+        assert np.all(np.isfinite(f)), 'belief matrix contains nan values. filter: {}, weights: {}'.format(f, self.weights)
         return f
 
     def _predictParticles(self):
@@ -129,10 +129,11 @@ class ParticleFilter(Filter):
         
     def _updateParticles(self, pose, obs):
         prob = self.sensor.prob((self.x_particles, self.y_particles), pose, obs)
-        old_weights = self.weights
         self.weights *= prob
+        self.weights = np.nan_to_num(self.weights) # we get problems with nan with larger numbers of particles
+        self.weights += 1.e-300 # when numbers get too small, they become nan. then we convert nan to 0 and add a small number
         self.weights /= self.weights.sum()
-        assert not np.any(np.isnan(self.weights)), 'weights contain nan values: weights: {}, sum: {}, weights before update: {}'.format(self.weights, self.weights.sum(), old_weights)
+        assert np.all(np.isfinite(self.weights)), 'weights contains nan values: weights: {}, prob: {}'.format(self.weights, prob)
 
     def _stratifiedResample(self):
         positions = (np.random.rand(self.nb_particles) + range(self.nb_particles)) / self.nb_particles
@@ -178,7 +179,7 @@ class ParticleFilter(Filter):
         c_yy = np.sum(np.dot(f, centers ** 2)) - mu_y ** 2
         c_xy = np.sum(f.T * np.outer(centers, centers)) - mu_x * mu_y
 
-        m = np.array([[c_xx+1e-200, c_xy], [c_xy, c_yy+1e-200]])
+        m = np.array([[c_xx+1e-15, c_xy], [c_xy, c_yy+1e-15]])
         return m
     
     def maxEigenvalue(self):
