@@ -8,8 +8,7 @@ policy stuff
 '''
 import numpy as np
 import random
-from PyFEBOL import util
-
+import util
 class Policy(object):
     def __init__(self):
         raise Exception("please instantiate a specific policy, this is just a base class!")
@@ -64,3 +63,15 @@ class RandomPolicy(Policy):
             return random.choice(self.actions)
         else:
             return np.array(random.choices(self.actions, k=k)) # useful for vectorization
+
+class ConstantVelocityPolicy(Policy):
+    def __init__(self, dx, dy):
+        self.dx = dx
+        self.dy = dy
+
+    def action(self, k=1):
+        action = (self.dx, self.dy, 0.0)
+        if k == 1:
+            return action
+        else:
+            return np.array([action] * k)

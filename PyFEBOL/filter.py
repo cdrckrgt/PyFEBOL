@@ -99,15 +99,17 @@ class ParticleFilter(Filter):
     '''
     simple particle filter with simple resampling, performed according to effective N updates
     '''
-    def __init__(self, domain, buckets, sensor, policy, nb_particles):
+    def __init__(self, domain, buckets, sensor, maxStep, nb_particles):
         self.domain = domain
         self.buckets = buckets
         self.sensor = sensor
-        self.policy = policy # generative model for updating particle positions
+        self.maxStep = maxStep
         self.cellSize = domain.length / buckets
         self.nb_particles = nb_particles
         self.x_particles = np.random.uniform(0, domain.length, self.nb_particles)
+        self.dx_particles = np.random.uniform(-self.maxStep, self.maxStep, self.nb_particles)
         self.y_particles = np.random.uniform(0, domain.length, self.nb_particles)
+        self.dy_particles = np.random.uniform(-self.maxStep, self.maxStep, self.nb_particles)
         self.weights = np.ones(self.nb_particles) / self.nb_particles
 
     def getBelief(self):
@@ -121,9 +123,8 @@ class ParticleFilter(Filter):
         return f
 
     def _predictParticles(self):
-        moves = self.policy.action(self.nb_particles)
-        self.x_particles += moves[:, 0]
-        self.y_particles += moves[:, 1]
+        self.x_particles += self.dx_particles # does not respect maxStep limit, goes up to maxStep * sqrt(2)
+        self.y_particles += self.dy_particles
         self.x_particles = np.clip(self.x_particles, 0, self.domain.length)
         self.y_particles = np.clip(self.y_particles, 0, self.domain.length)
         
@@ -149,6 +150,8 @@ class ParticleFilter(Filter):
                 j += 1
         self.x_particles = self.x_particles[idxs]
         self.y_particles = self.y_particles[idxs]
+        self.dx_particles = self.dx_particles[idxs]
+        self.dy_particles = self.dy_particles[idxs]
         self.weights = np.ones(self.nb_particles) / self.nb_particles
 
     def _resampleParticles(self):

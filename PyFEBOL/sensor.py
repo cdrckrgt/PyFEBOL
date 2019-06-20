@@ -8,7 +8,7 @@ sensor stuff
 '''
 import numpy as np
 from scipy.stats import norm
-from PyFEBOL import util
+import util
 
 class Sensor(object):
     def __init__(self):
