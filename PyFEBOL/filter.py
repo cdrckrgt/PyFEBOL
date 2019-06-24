@@ -107,9 +107,9 @@ class ParticleFilter(Filter):
         self.cellSize = domain.length / buckets
         self.nb_particles = nb_particles
         self.x_particles = np.random.uniform(0, domain.length, self.nb_particles)
-        self.dx_particles = np.random.uniform(-self.maxStep, self.maxStep, self.nb_particles)
+        self.dx_particles = np.random.uniform(-(self.maxStep + 1), self.maxStep + 1, self.nb_particles)
         self.y_particles = np.random.uniform(0, domain.length, self.nb_particles)
-        self.dy_particles = np.random.uniform(-self.maxStep, self.maxStep, self.nb_particles)
+        self.dy_particles = np.random.uniform(-(self.maxStep + 1), self.maxStep + 1, self.nb_particles)
         self.weights = np.ones(self.nb_particles) / self.nb_particles
 
     def getBelief(self):
@@ -123,8 +123,8 @@ class ParticleFilter(Filter):
         return f
 
     def _predictParticles(self):
-        self.x_particles += self.dx_particles # does not respect maxStep limit, goes up to maxStep * sqrt(2)
-        self.y_particles += self.dy_particles
+        self.x_particles += self.dx_particles + np.random.randn(self.nb_particles) * self.sensor.sigma # noisy prediction
+        self.y_particles += self.dy_particles + np.random.randn(self.nb_particles) * self.sensor.sigma
         self.x_particles = np.clip(self.x_particles, 0, self.domain.length)
         self.y_particles = np.clip(self.y_particles, 0, self.domain.length)
         

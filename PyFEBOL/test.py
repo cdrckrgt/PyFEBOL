@@ -8,7 +8,7 @@ from util import getDistance2
 
 import numpy as np
 
-m = SearchDomain(100.0, policy=ConstantVelocityPolicy(1.0, -0.5))
+m = SearchDomain(200.0, policy=ConstantVelocityPolicy(1.0, -0.5))
 
 # s = FOVSensor(0.1, 120., 25)
 s = BearingOnlySensor(10.0)
@@ -16,10 +16,11 @@ s = BearingOnlySensor(10.0)
 d = Drone(25, 25, 60, 2.0, s, m)
 print("drone pose: ", d.getPose())
 
-f = ParticleFilter(m, 25, s, d.maxStep, 1000)
+f = ParticleFilter(m, 64, s, d.maxStep, 10000)
 # f = DiscreteFilter(m, 25, s)
 
-p = MeanPolicy(d.maxStep, 36) 
+# p = MeanPolicy(d.maxStep, 36) 
+p = ConstantVelocityPolicy()
 
 # c = EntropyDistanceCostModel(lambda_=0.1, threshold=15.0)
 c = MaxEigenvalDistanceCostModel(lambda_=0.1, threshold=15.0)
@@ -48,7 +49,7 @@ while getDistance2(d.getPose(), m.getTheta()) > 5 and num_steps < 100:
     # print('dy: ', f.dy_particles)
 
     # calculate action
-    a = p.action(m, d, obs, f)
+    a = p.action()
 
     # act
     d.act(a)
