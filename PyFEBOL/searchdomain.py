@@ -7,12 +7,17 @@ cdrckrgt@stanford.edu
 the area in which the drone moves
 '''
 import numpy as np
+import random
 
 class SearchDomain(object):
     def __init__(self, length, policy=None, init=None):
         self.length = length
+
+        # if an init was passed. just start the target there
+        # otherwise we pick a random corner to start in
+
         if init: # fix position of target
-            self.theta = init
+            self.theta = (init[0] * self.length, init[1] * self.length)
         else:
             self.theta = (np.random.rand() * self.length, np.random.rand() * self.length)  # random RF source location
         self.policy = policy
