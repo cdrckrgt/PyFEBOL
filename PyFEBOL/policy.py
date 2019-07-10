@@ -23,7 +23,7 @@ class Policy(object):
         for angle in angles:
             ax = maxStep * np.sin(angle * np.pi / 180)
             ay = maxStep * np.cos(angle * np.pi / 180)
-            if headings:
+            if headings is not None:
                 for heading in headings:
                     actions.append((ax, ay, heading))
             else:
