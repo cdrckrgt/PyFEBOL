@@ -97,24 +97,23 @@ class HighestProbDistanceCostModel(CostModel):
         self.threshold = threshold
 
     def getCost(self, domain, drone, filter_, action):
+
         max_prob = filter_.maxProbBucket()
-        
-        it = np.nditer(filter_.getBelief(), flags=['multi_index'])
-        expectation = 0
-        while not it.finished:
-            prob = it[0] # value of prob in this bucket
-            idx = it.multi_index # index of this bucket in filter (channel, x, y)
-            x = (idx[1] + 0.5) * filter_.cellSize
-            y = (idx[2] + 0.5) * filter_.cellSize
- 
-            x_seeker, y_seeker, _ = drone.getPose()
-            norm = np.linalg.norm(np.array([x, y]) - np.array([x_seeker, y_seeker]))
+        expectation = 0.0
 
-            if norm < self.threshold: # if there's a collision for this bin
-                expectation += prob
+        F = filter_.getBelief().squeeze()
+        i, j = np.where(F)
+        x = (j + 0.5) * filter_.cellSize
+        y = (i + 0.5) * filter_.cellSize
 
-            it.iternext()
+        centers = np.dstack((x, y)).squeeze()
 
+        x_seeker, y_seeker, _ = drone.getPose()
+        pose = np.array([x_seeker, y_seeker])
+
+        norms = np.linalg.norm(centers - pose,axis=1)
+
+        expectation = np.sum(F[i, j][norms < self.threshold])
         expectation *= self.lambda_
 
         return (max_prob - expectation)

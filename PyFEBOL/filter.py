@@ -114,10 +114,10 @@ class ParticleFilter(Filter):
 
     def getBelief(self):
         # discretize belief for input into neural net
-        f = np.zeros((self.buckets, self.buckets)) / (self.buckets ** 2) # buckets is num buckets per side
+        f = np.zeros((self.buckets, self.buckets)) # buckets is num buckets per side
         j = np.minimum((self.x_particles // self.cellSize), self.buckets - 1).astype(int)
         i = np.minimum((self.y_particles // self.cellSize), self.buckets - 1).astype(int)
-        np.add.at(f, (i, j), self.weights)
+        f[i, j] = self.weights
         f = f[np.newaxis, :, :] # add channel dimension
         assert np.all(np.isfinite(f)), 'belief matrix contains nan values. filter: {}, weights: {}'.format(f, self.weights)
         return f
