@@ -117,7 +117,18 @@ class ParticleFilter(Filter):
         f = np.zeros((self.buckets, self.buckets)) # buckets is num buckets per side
         j = np.minimum((self.x_particles // self.cellSize), self.buckets - 1).astype(int)
         i = np.minimum((self.y_particles // self.cellSize), self.buckets - 1).astype(int)
+        import time
+        before = time.time()
         np.add.at(f, (i, j), self.weights)
+        after = time.time()
+        print('f took: ', after-before)
+        before = time.time()
+        H, _, _ = np.histogram2d(i, j, bins=self.buckets, weights=self.weights)
+        after = time.time()
+        print('H took: ', after-before)
+        print('H: ', np.sum(H))
+        print('f: ', np.sum(f))
+        print('H - f: ', np.sum(np.abs(H) - np.abs(f)))
         f = f[np.newaxis, :, :] # add channel dimension
         assert np.all(np.isfinite(f)), 'belief matrix contains nan values. filter: {}, weights: {}'.format(f, self.weights)
         return f
