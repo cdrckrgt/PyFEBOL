@@ -10,7 +10,6 @@ import numpy as np
 import scipy.stats as stats
 
 from fast_histogram import histogram2d as fhist2d
-from pygram11 import histogram2d as pghist2d
 
 class Filter(object):
     def __init__(self):
