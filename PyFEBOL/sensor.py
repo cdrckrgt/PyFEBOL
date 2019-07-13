@@ -29,7 +29,7 @@ class BearingOnlySensor(Sensor):
     def prob(self, theta, pose, obs):
         bearing = util.getTrueBearing(theta, pose)
         obsDiff = util.fit180(obs - bearing)
-        return norm.pdf(obsDiff, 0, self.sigma)
+        return norm._pdf(obsDiff / self.sigma) / self.sigma # abandon error checking in name of performance
 
 class FOVSensor(Sensor):
     # requires headings to be input if you want something good...

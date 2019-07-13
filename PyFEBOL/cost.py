@@ -102,7 +102,7 @@ class HighestProbDistanceCostModel(CostModel):
         expectation = 0.0
 
         F = filter_.getBelief().squeeze()
-        i, j = np.where(F)
+        i, j = np.nonzero(F)
         x = (j + 0.5) * filter_.cellSize
         y = (i + 0.5) * filter_.cellSize
 
@@ -111,7 +111,10 @@ class HighestProbDistanceCostModel(CostModel):
         x_seeker, y_seeker, _ = drone.getPose()
         pose = np.array([x_seeker, y_seeker])
 
-        norms = np.linalg.norm(centers - pose,axis=1)
+        if centers.shape == pose.shape:
+            norms = np.linalg.norm(centers - pose)
+        else:
+            norms = np.linalg.norm(centers - pose, axis=1)
 
         expectation = np.sum(F[i, j][norms < self.threshold])
         expectation *= self.lambda_

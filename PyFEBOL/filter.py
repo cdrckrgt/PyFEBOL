@@ -9,6 +9,8 @@ filter stuff
 import numpy as np
 import scipy.stats as stats
 
+from fast_histogram import histogram2d as fhist2d
+from pygram11 import histogram2d as pghist2d
 
 class Filter(object):
     def __init__(self):
@@ -111,27 +113,18 @@ class ParticleFilter(Filter):
         self.y_particles = np.random.uniform(0, domain.length, self.nb_particles)
         self.dy_particles = np.random.uniform(-self.maxStep, self.maxStep, self.nb_particles)
         self.weights = np.ones(self.nb_particles) / self.nb_particles
+        self.belief = np.ones((self.buckets, self.buckets)) / (self.buckets ** 2)
+        self.belief = self.belief[np.newaxis, :, :]
 
     def getBelief(self):
+        return self.belief
+
+    def _updateBelief(self):
         # discretize belief for input into neural net
-        f = np.zeros((self.buckets, self.buckets)) # buckets is num buckets per side
-        j = np.minimum((self.x_particles // self.cellSize), self.buckets - 1).astype(int)
-        i = np.minimum((self.y_particles // self.cellSize), self.buckets - 1).astype(int)
-        import time
-        before = time.time()
-        np.add.at(f, (i, j), self.weights)
-        after = time.time()
-        print('f took: ', after-before)
-        before = time.time()
-        H, _, _ = np.histogram2d(i, j, bins=self.buckets, weights=self.weights)
-        after = time.time()
-        print('H took: ', after-before)
-        print('H: ', np.sum(H))
-        print('f: ', np.sum(f))
-        print('H - f: ', np.sum(np.abs(H) - np.abs(f)))
+        f = fhist2d(self.x_particles, self.y_particles, bins=self.buckets, range=[[0, self.domain.length + 1], [0, self.domain.length + 1]], weights=self.weights)
         f = f[np.newaxis, :, :] # add channel dimension
         assert np.all(np.isfinite(f)), 'belief matrix contains nan values. filter: {}, weights: {}'.format(f, self.weights)
-        return f
+        self.belief = f
 
     def _predictParticles(self):
         self.x_particles += self.dx_particles + np.random.randn(self.nb_particles) * self.sensor.sigma # noisy prediction
@@ -173,6 +166,7 @@ class ParticleFilter(Filter):
         self._predictParticles()
         self._updateParticles(pose, obs)
         self._resampleParticles()
+        self._updateBelief()
 
     def entropy(self):
         f = self.getBelief()
