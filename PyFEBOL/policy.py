@@ -66,12 +66,11 @@ class RandomPolicy(Policy):
             return np.array(random.choices(self.actions, k=k)) # useful for vectorization
 
 class ConstantVelocityPolicy(Policy):
-    def __init__(self, dx=None, dy=None, maxStep=None):
-        maxStep = 2.0 if maxStep is None else maxStep
-        if dx is None:
-            dx = np.random.uniform(-maxStep, maxStep)
-        if dy is None:
-            dy = np.random.uniform(-maxStep, maxStep)
+    def __init__(self, dx=None, dy=None, maxStep=1.7):
+        if dx is None and dy is None:
+            theta = np.random.uniform(0, np.pi * 2)
+            dx = maxStep * np.cos(theta)
+            dy = maxStep * np.sin(theta)
         self.dx = dx
         self.dy = dy
 
