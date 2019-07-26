@@ -152,3 +152,41 @@ class MaxEigenvalDistanceCostModel(CostModel):
         expectation *= self.lambda_
 
         return -(max_eig + expectation)
+
+class DiscreteProbDistanceCostModel(CostModel):
+    '''
+    rewards if highest prob above threshold
+    penalizes if near collisions above threshold
+    '''
+    def __init__(self, distance_threshold, entropy_threshold, collision_threshold):
+        self.distance_threshold = distance_threshold
+        self.entropy_threshold = entropy_threshold
+        self.collision_threshold = collision_threshold
+
+    def getCost(self, domain, drone, filter_, action):
+
+        max_prob = filter_.maxProbBucket()
+        expectation = 0.0
+
+        F = filter_.getBelief().squeeze()
+        i, j = np.nonzero(F)
+        x = (j + 0.5) * filter_.cellSize
+        y = (i + 0.5) * filter_.cellSize
+
+        centers = np.dstack((x, y)).squeeze()
+
+        x_seeker, y_seeker, _ = drone.getPose()
+        pose = np.array([x_seeker, y_seeker])
+
+        if centers.shape == pose.shape:
+            norms = np.linalg.norm(centers - pose)
+        else:
+            norms = np.linalg.norm(centers - pose, axis=1)
+
+        expectation = np.sum(F[i, j][norms < self.distance_threshold])
+
+        reward = 1 if max_prob > self.entropy_threshold else 0
+        reward = -1 if expectation > self.collision_threshold else reward
+        return reward
+
+
