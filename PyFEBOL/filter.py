@@ -130,11 +130,11 @@ class ParticleFilter(Filter):
         during particle filter updates, we need a certain amount of variance
         to combat particle deprivation. how much noise is good?
         '''
-        self.dx_particles += np.random.randn(self.nb_particles) * 0.1
-        self.dy_particles += np.random.randn(self.nb_particles) * 0.1
+        self.dx_particles += np.random.randn(self.nb_particles) * 0.05
+        self.dy_particles += np.random.randn(self.nb_particles) * 0.05
 
-        self.x_particles += self.dx_particles + np.random.randn(self.nb_particles) * 3.0 # noisy prediction
-        self.y_particles += self.dy_particles + np.random.randn(self.nb_particles) * 3.0
+        self.x_particles += self.dx_particles + np.random.randn(self.nb_particles) * 1.0 # noisy prediction
+        self.y_particles += self.dy_particles + np.random.randn(self.nb_particles) * 1.0
  
         self.x_particles = np.clip(self.x_particles, 0, self.domain.length)
         self.y_particles = np.clip(self.y_particles, 0, self.domain.length)
