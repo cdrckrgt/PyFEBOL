@@ -193,6 +193,7 @@ class ThresholdProbDistanceCostModel(CostModel):
     '''
     rewards if highest prob above threshold
     penalizes if near collisions above threshold
+    linear reward between threshold to 1, lambda * expectation for penalty
     '''
     def __init__(self, distance_threshold, entropy_threshold, lambda_):
         self.distance_threshold = distance_threshold
@@ -224,3 +225,48 @@ class ThresholdProbDistanceCostModel(CostModel):
         belief_reward = max(float(max_prob - self.entropy_threshold) / float(1 - self.entropy_threshold), 0.0)
         collision_reward = self.lambda_ * expectation
         return belief_reward - collision_reward 
+
+class ThresholdTrackingCostModel(CostModel):
+    '''
+    rewards if highest prob above threshold
+    penalizes if near collisions above threshold
+    linear reward between threshold to 1, lambda * expectation for penalty, 
+        includes tracking error 
+    '''
+    def __init__(self, distance_threshold, entropy_threshold, tracking_threshold, lambda_):
+        self.distance_threshold = distance_threshold # distance from target that triggers collision
+        self.entropy_threshold = entropy_threshold # uncertainty measure that triggers reward in belief
+        self.tracking_threshold = tracking_threshold # fraction of map that triggers penalty
+        self.lambda_ = lambda_
+
+    def getCost(self, domain, drone, filter_, action):
+
+        max_prob = filter_.maxProbBucket()
+        expectation = 0.0
+
+        F = filter_.getBelief().squeeze()
+        i, j = np.nonzero(F)
+        x = (j + 0.5) * filter_.cellSize
+        y = (i + 0.5) * filter_.cellSize
+
+        centers = np.dstack((x, y)).squeeze()
+
+        x_seeker, y_seeker, _ = drone.getPose()
+        pose = np.array([x_seeker, y_seeker])
+
+        if centers.shape == pose.shape:
+            norms = np.linalg.norm(centers - pose)
+        else:
+            norms = np.linalg.norm(centers - pose, axis=1)
+
+        expectation = np.sum(F[i, j][norms < self.distance_threshold])
+
+        theta_x, theta_y = domain.getTheta()
+
+        tracking_error = np.linalg.norm(np.array(filter_.centroid()) - np.array([theta_x, theta_y]))
+        tracking_error = tracking_error / ((domain.length * domain.length) ** (0.5))
+
+        tracking_reward = max(float(tracking_error - self.tracking_threshold) / float(1 - self.tracking_threshold), 0.0)
+        belief_reward = max(float(max_prob - self.entropy_threshold) / float(1 - self.entropy_threshold), 0.0)
+        collision_reward = self.lambda_ * expectation
+        return belief_reward - collision_reward - tracking_reward
