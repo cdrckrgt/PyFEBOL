@@ -230,8 +230,9 @@ class ThresholdTrackingCostModel(CostModel):
     '''
     rewards if highest prob above threshold
     penalizes if near collisions above threshold
+    rewards if tracking error below threshold
     linear reward between threshold to 1, lambda * expectation for penalty, 
-        includes tracking error 
+        includes tracking error  reward
     '''
     def __init__(self, distance_threshold, entropy_threshold, tracking_threshold, lambda_):
         self.distance_threshold = distance_threshold # distance from target that triggers collision
@@ -261,12 +262,12 @@ class ThresholdTrackingCostModel(CostModel):
 
         expectation = np.sum(F[i, j][norms < self.distance_threshold])
 
-        theta_x, theta_y = domain.getTheta()
+        tracking_error = np.linalg.norm(np.array(filter_.centroid()) - np.array(domain.getTheta()))
+        # normalize by the domain length
+        tracking_error = 1 - tracking_error / domain.length
 
-        tracking_error = np.linalg.norm(np.array(filter_.centroid()) - np.array([theta_x, theta_y]))
-        tracking_error = tracking_error / ((domain.length * domain.length) ** (0.5))
-
-        tracking_reward = max(float(tracking_error - self.tracking_threshold) / float(1 - self.tracking_threshold), 0.0)
         belief_reward = max(float(max_prob - self.entropy_threshold) / float(1 - self.entropy_threshold), 0.0)
         collision_reward = self.lambda_ * expectation
-        return belief_reward - collision_reward - tracking_reward
+        tracking_reward = max(float(tracking_error - self.tracking_threshold) / float(1 - self.tracking_threshold), 0.0)
+
+        return belief_reward + tracking_reward - collision_reward
