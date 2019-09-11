@@ -271,3 +271,35 @@ class ThresholdTrackingCostModel(CostModel):
         tracking_reward = max(float(tracking_error - self.tracking_threshold) / float(1 - self.tracking_threshold), 0.0)
 
         return belief_reward + tracking_reward - collision_reward
+
+class SimpleHCTCostModel(CostModel):
+    '''
+    H - minimize entropy
+    C - avoid collisions
+    T - minimize tracking error
+    '''
+    def __init__(self, distance_threshold, entropy_threshold, tracking_threshold, lambda_1, lambda_2, lambda_3):
+        self.entropy_threshold = entropy_threshold # uncertainty measure that triggers reward in belief
+        self.distance_threshold = distance_threshold # distance from target that triggers collision
+        self.tracking_threshold = tracking_threshold # fraction of map that triggers penalty
+        self.lambda_1 = lambda_1 # entropy
+        self.lambda_2 = lambda_2 # collision
+        self.lambda_3 = lambda_3 # tracking
+
+    def getCost(self, domain, drone, filter_, action):
+
+        max_prob = filter_.maxProbBucket()
+
+        x_seeker, y_seeker, _ = drone.getPose()
+        pose = np.array([x_seeker, y_seeker])
+
+        collision_reward = 1.0 if np.linalg.norm(np.array(domain.getTheta()) - pose) < self.distance_threshold else 0.0
+
+        tracking_error = np.linalg.norm(np.array(filter_.centroid()) - np.array(domain.getTheta()))
+        # normalize by the domain length
+        tracking_error = 1 - tracking_error / domain.length
+
+        belief_reward = max(float(max_prob - self.entropy_threshold) / float(1 - self.entropy_threshold), 0.0)
+        tracking_reward = max(float(tracking_error - self.tracking_threshold) / float(1 - self.tracking_threshold), 0.0)
+
+        return self.lambda_1 * belief_reward - self.lambda_2 * collision_reward + self.lambda_3 * tracking_reward 

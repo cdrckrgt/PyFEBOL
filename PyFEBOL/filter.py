@@ -40,7 +40,6 @@ class Filter(object):
         raise Exception("Please instantitate a specific filter!")
 
 
-
 class DiscreteFilter(Filter):
     def __init__(self, domain, buckets, sensor):
         self.domain = domain
