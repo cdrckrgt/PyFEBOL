@@ -18,6 +18,11 @@ class Policy(object):
         raise Exception("please instantiate a specific policy, this is just a base class!")
 
     def makeActionList(self, maxStep, numActions, headings):
+        '''
+        headings is a list: [-1, 0, 1]
+        that defines the multiplicative factor of the max heading we change by
+            every step
+        '''
         actions = []
         angles = np.linspace(0.0, 360. - 360 / numActions, numActions)
         for angle in angles:

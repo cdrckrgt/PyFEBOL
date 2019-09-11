@@ -9,11 +9,12 @@ the drone and its movement
 import numpy as np
 
 class Drone(object):
-    def __init__(self, x, y, heading, maxStep, sensor, searchdomain):
+    def __init__(self, x, y, heading, maxStep, headingMaxStep, sensor, searchdomain):
         self.x = x
         self.y = y
         self.heading = heading
         self.maxStep = maxStep
+        self.headingMaxStep = headingMaxStep
         self.sensor = sensor
         self.searchdomain = searchdomain
 
@@ -23,7 +24,8 @@ class Drone(object):
     def getNewPose(self, action):
         newX = self.x + action[0]
         newY = self.y + action[1]
-        newHeading = (self.heading + action[2]) % 360. # ensuring that heading remains within 360 degrees
+        shift = self.headingMaxStep * action[2]
+        newHeading = (self.heading + shift) % 360. # ensuring that heading remains within 360 degrees
         return newX, newY, newHeading
 
     def act(self, action, nb_act_repeat=1):

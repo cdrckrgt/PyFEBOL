@@ -2,25 +2,26 @@ from drone import Drone
 from sensor import BearingOnlySensor, FOVSensor
 from searchdomain import SearchDomain
 from filter import ParticleFilter, DiscreteFilter
-from policy import MeanPolicy, RandomPolicy, ConstantVelocityPolicy
+from policy import MeanPolicy, RandomPolicy, RLPolicy, ConstantVelocityPolicy
 from cost import EntropyDistanceCostModel, MaxEigenvalDistanceCostModel
 from util import getDistance2
 
 import numpy as np
+import random
 
 m = SearchDomain(200.0, policy=ConstantVelocityPolicy(1.0, -0.5))
 
 # s = FOVSensor(0.1, 120., 25)
 s = BearingOnlySensor(10.0)
 
-d = Drone(25, 25, 60, 2.0, s, m)
+d = Drone(25, 25, 60, 2.0, 15.0, s, m)
 print("drone pose: ", d.getPose())
 
 f = ParticleFilter(m, 64, s, d.maxStep, 10000)
 # f = DiscreteFilter(m, 25, s)
 
 # p = MeanPolicy(d.maxStep, 36) 
-p = ConstantVelocityPolicy()
+p = RLPolicy(d.maxStep, 36, [-1.0, 0.0, 1.0])
 
 # c = EntropyDistanceCostModel(lambda_=0.1, threshold=15.0)
 c = MaxEigenvalDistanceCostModel(lambda_=0.1, threshold=15.0)
@@ -49,7 +50,7 @@ while getDistance2(d.getPose(), m.getTheta()) > 5 and num_steps < 100:
     # print('dy: ', f.dy_particles)
 
     # calculate action
-    a = p.action()
+    a = random.choice(p.actions)
 
     # act
     d.act(a)

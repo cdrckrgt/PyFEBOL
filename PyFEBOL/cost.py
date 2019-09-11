@@ -270,6 +270,10 @@ class ThresholdTrackingCostModel(CostModel):
         collision_reward = self.lambda_ * expectation
         tracking_reward = max(float(tracking_error - self.tracking_threshold) / float(1 - self.tracking_threshold), 0.0)
 
+        # print('belief_reward: ', belief_reward)
+        # print('collision_reward: ', collision_reward)
+        # print('tracking_reward: ', tracking_reward)
+
         return belief_reward + tracking_reward - collision_reward
 
 class SimpleHCTCostModel(CostModel):
@@ -302,4 +306,12 @@ class SimpleHCTCostModel(CostModel):
         belief_reward = max(float(max_prob - self.entropy_threshold) / float(1 - self.entropy_threshold), 0.0)
         tracking_reward = max(float(tracking_error - self.tracking_threshold) / float(1 - self.tracking_threshold), 0.0)
 
-        return self.lambda_1 * belief_reward - self.lambda_2 * collision_reward + self.lambda_3 * tracking_reward 
+        belief_reward = self.lambda_1 * belief_reward
+        collision_reward = self.lambda_2 * collision_reward
+        tracking_reward = self.lambda_3 * tracking_reward
+
+        # print('belief_reward: ', belief_reward)
+        # print('collision_reward: ', collision_reward)
+        # print('tracking_reward: ', tracking_reward)
+
+        return belief_reward - collision_reward + tracking_reward
