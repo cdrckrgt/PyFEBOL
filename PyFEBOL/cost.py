@@ -282,29 +282,42 @@ class SimpleHCTCostModel(CostModel):
     C - avoid collisions
     T - minimize tracking error
     '''
-    def __init__(self, distance_threshold, entropy_threshold, tracking_threshold, lambda_1, lambda_2, lambda_3):
-        self.entropy_threshold = entropy_threshold # uncertainty measure that triggers reward in belief
-        self.distance_threshold = distance_threshold # distance from target that triggers collision
-        self.tracking_threshold = tracking_threshold # fraction of map that triggers penalty
+    def __init__(self, distance_threshold, lambda_1, lambda_2, lambda_3):
+        self.distance_threshold = distance_threshold
         self.lambda_1 = lambda_1 # entropy
         self.lambda_2 = lambda_2 # collision
         self.lambda_3 = lambda_3 # tracking
 
     def getCost(self, domain, drone, filter_, action):
 
-        max_prob = filter_.maxProbBucket()
+        norm_entropy = filter_.entropy() / np.log(filter_.buckets)
 
         x_seeker, y_seeker, _ = drone.getPose()
         pose = np.array([x_seeker, y_seeker])
 
-        collision_reward = 1.0 if np.linalg.norm(np.array(domain.getTheta()) - pose) < self.distance_threshold else 0.0
+        expectation = 0.0
+
+        F = filter_.getBelief().squeeze()
+        i, j = np.nonzero(F)
+        x = (j + 0.5) * filter_.cellSize
+        y = (i + 0.5) * filter_.cellSize
+
+        centers = np.dstack((x, y)).squeeze()
+
+        if centers.shape == pose.shape:
+            norms = np.linalg.norm(centers - pose)
+        else:
+            norms = np.linalg.norm(centers - pose, axis=1)
+
+        expectation = np.sum(F[i, j][norms < self.distance_threshold])
 
         tracking_error = np.linalg.norm(np.array(filter_.centroid()) - np.array(domain.getTheta()))
         # normalize by the domain length
-        tracking_error = 1 - tracking_error / domain.length
+        tracking_error = tracking_error / (domain.length * np.sqrt(2))
 
-        belief_reward = max(float(max_prob - self.entropy_threshold) / float(1 - self.entropy_threshold), 0.0)
-        tracking_reward = max(float(tracking_error - self.tracking_threshold) / float(1 - self.tracking_threshold), 0.0)
+        belief_reward = 1 - norm_entropy
+        collision_reward = 1 - expectation
+        tracking_reward = 1 - tracking_error
 
         belief_reward = self.lambda_1 * belief_reward
         collision_reward = self.lambda_2 * collision_reward
@@ -314,4 +327,4 @@ class SimpleHCTCostModel(CostModel):
         # print('collision_reward: ', collision_reward)
         # print('tracking_reward: ', tracking_reward)
 
-        return belief_reward - collision_reward + tracking_reward
+        return belief_reward + collision_reward + tracking_reward
