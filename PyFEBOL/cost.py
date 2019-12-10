@@ -244,38 +244,72 @@ class WeightedThresholdCostModel(CostModel):
 
     def getCost(self, domain, drone, filter_, action):
 
-        max_prob = filter_.maxProbBucket()
-        expectation = 0.0
+        # entropy
+        # max_prob = filter_.maxProbBucket()
+        # belief_reward = self.lambda_2 * max(float(max_prob - self.entropy_threshold) / float(1 - self.entropy_threshold), 0.0)
+        entropy = filter_.entropy()
+        belief_reward = self.lambda_2 * -entropy
+        
 
-        F = filter_.getBelief().squeeze()
-        i, j = np.nonzero(F)
-        x = (j + 0.5) * filter_.cellSize
-        y = (i + 0.5) * filter_.cellSize
+        # near collisions
+        # F = filter_.getBelief().squeeze()
+        # i, j = np.nonzero(F)
+        # x = (j + 0.5) * filter_.cellSize
+        # y = (i + 0.5) * filter_.cellSize
 
-        centers = np.dstack((x, y)).squeeze()
+        # centers = np.dstack((x, y)).squeeze()
+
+        # x_seeker, y_seeker, _ = drone.getPose()
+        # pose = np.array([x_seeker, y_seeker])
+
+        # if centers.shape == pose.shape:
+        #     norms = np.linalg.norm(centers - pose)
+        # else:
+        #     norms = np.linalg.norm(centers - pose, axis=1)
+
+        # expectation = np.sum(F[i, j][norms < self.distance_threshold])
 
         x_seeker, y_seeker, _ = drone.getPose()
         pose = np.array([x_seeker, y_seeker])
-
-        if centers.shape == pose.shape:
-            norms = np.linalg.norm(centers - pose)
-        else:
-            norms = np.linalg.norm(centers - pose, axis=1)
-
-        expectation = np.sum(F[i, j][norms < self.distance_threshold])
-
-        tracking_error = np.linalg.norm(np.array(filter_.centroid()) - np.array(domain.getTheta()))
-        # normalize by the domain length
-        tracking_error = 1 - tracking_error / domain.length
-
-        belief_reward = self.lambda_2 * max(float(max_prob - self.entropy_threshold) / float(1 - self.entropy_threshold), 0.0)
+        norms = np.linalg.norm(np.asarray([filter_.x_particles, filter_.y_particles]) - pose[:, np.newaxis], axis=0)
+        expectation = np.sum(norms < self.distance_threshold) / filter_.nb_particles
+        assert (expectation <= 1) and (expectation >= 0), 'expectation out of bounds'
         collision_reward = self.lambda_1 * expectation
-        tracking_reward = self.lambda_3 * max(float(tracking_error - self.tracking_threshold) / float(1 - self.tracking_threshold), 0.0)
+
+
+        # tracking error
+        tracking_error = np.linalg.norm(np.array(filter_.centroid()) - np.array(domain.getTheta()))
+        # # normalize by the domain length
+        # tracking_error = 1 - tracking_error / domain.length
+        # tracking_reward = self.lambda_3 * max(float(tracking_error - self.tracking_threshold) / float(1 - self.tracking_threshold), 0.0)
+        tracking_reward = self.lambda_3 * int(tracking_error < 10.)
+
+        # dist = np.linalg.norm(np.array([x_seeker, y_seeker]) - np.asarray(domain.getTheta()))
+        # if dist < self.distance_threshold and tracking_error < 15:
+        #     print('real distance: ', dist)
+        #     print('tracking error: ', tracking_error)
+        #     # print('F: ', F)
+        #     # print('centers: ', centers)
+
+        #     print('particles shape: ', np.asarray([filter_.x_particles, filter_.y_particles]).shape)
+        #     print('pose shape: ', pose.shape)
+        #     particle_norms = np.linalg.norm(np.asarray([filter_.x_particles, filter_.y_particles]) - pose[:, np.newaxis], axis=0)
+        #     particle_expectation = np.sum(particle_norms < self.distance_threshold) / filter_.nb_particles
+        #     print('particle_norms: ', particle_norms)
+        #     print('particle_expectation: ', particle_expectation)
+
+
+        #     print('centers norms: ', norms)
+        #     print('expectation: ', expectation)
+        #     print('entropy: ', entropy)
 
         # print('belief_reward: ', belief_reward)
         # print('collision_reward: ', collision_reward)
         # print('tracking_reward: ', tracking_reward)
 
+        assert np.isfinite(belief_reward), 'belief_reward contains nan values. pose: {}'.format(belief_reward)
+        assert np.isfinite(collision_reward), 'collision_reward contains nan values. pose: {}'.format(collision_reward)
+        assert np.isfinite(tracking_reward), 'tracking_reward contains nan values. pose: {}'.format(tracking_reward)
         return belief_reward + tracking_reward - collision_reward
 
 

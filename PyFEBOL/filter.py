@@ -119,12 +119,24 @@ class ParticleFilter(Filter):
 
     def _updateBelief(self):
         # discretize belief for input into neural net
-        f = fhist2d(self.x_particles, self.y_particles, bins=self.buckets, range=[[0, self.domain.length + 1], [0, self.domain.length + 1]], weights=self.weights)
+        # particles will sometimes move past the end of the search domain.
+        # this poses an issue for us: if all particles move out of the domain,
+        # the belief we have of the domain is 0 everywhere.
+        # even if that doesn't happen, belief won't sum to one if any particle is
+        # outside the search domain.
+        # for belief updates, we will clip the particles to the edge of the domain, 
+        # regardless of where the particle actually is.
+        x_particles, y_particles =  np.clip(self.x_particles, 0, self.domain.length), np.clip(self.y_particles, 0, self.domain.length)
+        f = fhist2d(x_particles, y_particles, bins=self.buckets, range=[[0, self.domain.length + 1], [0, self.domain.length + 1]], weights=self.weights)
         f = f[np.newaxis, :, :] # add channel dimension
         assert np.all(np.isfinite(f)), 'belief matrix contains nan values. filter: {}, weights: {}'.format(f, self.weights)
+        if np.all(f == 0):
+            print('all entries in belief matrix 0! this happens when belief is concentrated outside the search domain')
+            f = (np.ones((self.buckets, self.buckets)) / (self.buckets ** 2))[np.newaxis, :, :]
+            self.weights = np.ones(self.nb_particles) / self.nb_particles
         self.belief = f
 
-    def _predictParticles(self):
+    def _predictParticles(self, nb_act_repeat=1):
         '''
         during particle filter updates, we need a certain amount of variance
         to combat particle deprivation. how much noise is good?
@@ -132,11 +144,11 @@ class ParticleFilter(Filter):
         self.dx_particles += np.random.randn(self.nb_particles) * 0.05
         self.dy_particles += np.random.randn(self.nb_particles) * 0.05
 
-        self.x_particles += self.dx_particles + np.random.randn(self.nb_particles) * 1.0 # noisy prediction
-        self.y_particles += self.dy_particles + np.random.randn(self.nb_particles) * 1.0
+        self.x_particles += nb_act_repeat * self.dx_particles + np.random.randn(self.nb_particles) * 1.0 # noisy prediction
+        self.y_particles += nb_act_repeat * self.dy_particles + np.random.randn(self.nb_particles) * 1.0
  
-        self.x_particles = np.clip(self.x_particles, 0, self.domain.length)
-        self.y_particles = np.clip(self.y_particles, 0, self.domain.length)
+        # self.x_particles = np.clip(self.x_particles, 0, self.domain.length)
+        # self.y_particles = np.clip(self.y_particles, 0, self.domain.length)
 
         self.dx_particles = np.clip(self.dx_particles, -self.maxStep, self.maxStep)
         self.dy_particles = np.clip(self.dy_particles, -self.maxStep, self.maxStep)
@@ -147,6 +159,10 @@ class ParticleFilter(Filter):
         self.weights = np.nan_to_num(self.weights) # we get problems with nan with larger numbers of particles
         self.weights += 1.e-300 # when numbers get too small, they become nan. then we convert nan to 0 and add a small number
         self.weights /= self.weights.sum()
+        # if np.all(self.weights == 0):
+        #     print('all weights 0! x, y: {}, {}'.format(self.x_particles, self.y_particles))
+        #     self.weights = np.ones(self.nb_particles) / self.nb_particles
+        assert not np.all(self.weights == 0), 'all weights 0! x, y: {}, {}'.format(self.x_particles, self.y_particles)
         assert np.all(np.isfinite(self.weights)), 'weights contains nan values: weights: {}, prob: {}'.format(self.weights, prob)
 
     def _stratifiedResample(self):
@@ -168,11 +184,11 @@ class ParticleFilter(Filter):
         self.weights = np.ones(self.nb_particles) / self.nb_particles
 
     def _resampleParticles(self):
-        if ((1. / np.sum(np.square(self.weights))) < (self.nb_particles / 2)):
-            self._stratifiedResample()
+        # if ((1. / np.sum(np.square(self.weights))) < (self.nb_particles / 2)):
+        self._stratifiedResample()
 
-    def update(self, pose, obs):
-        self._predictParticles()
+    def update(self, pose, obs, nb_act_repeat=1):
+        self._predictParticles(nb_act_repeat)
         self._updateParticles(pose, obs)
         self._resampleParticles()
         self._updateBelief()

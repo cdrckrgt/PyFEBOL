@@ -49,37 +49,40 @@ class FOVSensor(Sensor):
             return self.alpha
 
     def observe(self, theta, pose):
-        truth = util.getTrueBearing(pose, theta)
+        truth = util.getTrueBearing(theta, pose)
         rel_bearing = np.absolute(util.fit180(pose[2] - truth))
 
         if type(rel_bearing) == np.ndarray:
             prob_in_view = np.vectorize(self._getProb)(rel_bearing)
             distance = util.getDistance2(pose, theta)
-            prob_in_view[np.where(distance > self.blind_distance ** 2)] = 0.5
-            obs = np.where(np.random.randn(len(rel_bearing)) < prob_in_view, 0, 1)
+            prob_in_view[np.where(distance < self.blind_distance ** 2)] = 0.5
+            obs = np.asarray(np.random.random(len(rel_bearing)) < prob_in_view).nonzero()
+            assert np.all(np.isfinite(obs)), 'obs contains nan values. obs: {}'.format(obs)
             return obs
         else:
             prob_in_view = self._getProb(rel_bearing)
             distance = util.getDistance2(pose, theta)
-            if distance > self.blind_distance ** 2:
+            # too close, then we're blind (see dressel pseudobearing sensor paper)
+            if distance < self.blind_distance ** 2:
                 prob_in_view = 0.5
-            obs = 0 if np.random.randn() < prob_in_view else 1
+            obs = 1 if np.random.random() < prob_in_view else 0
             return obs
 
     def prob(self, theta, pose, obs):
-        truth = util.getTrueBearing(pose, theta)
+        truth = util.getTrueBearing(theta, pose)
         rel_bearing = np.absolute(util.fit180(pose[2] - truth))
 
         if type(rel_bearing) == np.ndarray:
             prob_in_view = np.vectorize(self._getProb)(rel_bearing)
             distance = util.getDistance2(pose, theta)
-            prob_in_view[np.where(distance > self.blind_distance ** 2)] = 0.5
-            prob = np.where(obs == 1, prob_in_view, 1.0 - prob_in_view)
+            prob_in_view[np.asarray(distance < self.blind_distance ** 2).nonzero()] = 0.5
+            prob = np.where(obs == 1, prob_in_view, (1.0 - prob_in_view))
+            assert np.all(np.isfinite(prob)), 'prob contains nan values. prob: {}'.format(prob)
             return prob
         else:
             prob_in_view = self._getProb(rel_bearing)
             distance = util.getDistance2(pose, theta)
-            if distance > self.blind_distance ** 2:
+            if distance < self.blind_distance ** 2:
                 prob_in_view = 0.5
             if obs == 1:
                 return prob_in_view
