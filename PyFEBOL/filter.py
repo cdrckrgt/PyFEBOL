@@ -113,8 +113,44 @@ class ParticleFilter(Filter):
         self.weights = np.ones(self.nb_particles) / self.nb_particles
         self.belief = np.ones((self.buckets, self.buckets)) / (self.buckets ** 2)
         self.belief = self.belief[np.newaxis, :, :]
+        self.transformedBelief = np.ones((self.buckets, self.buckets)) / (self.buckets ** 2)
+        self.transformedBelief = self.transformedBelief[np.newaxis, :, :]
+
+    def getTransformedBelief(self):
+        '''
+        returns belief matrix centered on the drone pose and rotated according to pose
+        '''
+        return self.transformedBelief
+
+    def _udpateTransformedBelief(self, pose):
+        origin_length = 0.5 * self.domain.length
+        x, y, heading = pose
+        # get particles relative to seeker position
+        x_relative = self.x_particles - x
+        y_relative = self.y_particles - y
+
+        # rotate particles according to seeker heading
+        theta = np.radians(heading)
+        c, s = np.cos(theta), np.sin(theta)
+        R = np.array([[c, -s], [s, c]])
+        x_relative, y_relative = np.dot(R, np.asarray([x_relative, y_relative]))
+
+        # discretize particles into matrix for neural net
+        x_relative, y_relative =  np.clip(x_relative, 0, self.domain.length), np.clip(y_relative, 0, self.domain.length)
+        f = fhist2d(x_relative, y_relative, bins=self.buckets, range=[[0, self.domain.length + 1], [0, self.domain.length + 1]], weights=self.weights)
+        f = f[np.newaxis, :, :] # add channel dimension
+        assert np.all(np.isfinite(f)), 'belief matrix contains nan values. filter: {}, weights: {}'.format(f, self.weights)
+        if np.all(f == 0):
+            print('all entries in belief matrix 0! this happens when belief is concentrated outside the search domain')
+            f = (np.ones((self.buckets, self.buckets)) / (self.buckets ** 2))[np.newaxis, :, :]
+            self.weights = np.ones(self.nb_particles) / self.nb_particles
+        self.transformedBelief = f
+
 
     def getBelief(self):
+        '''
+        returns the true belief, centered at (half domain, half domain)
+        '''
         return self.belief
 
     def _updateBelief(self):
@@ -192,6 +228,7 @@ class ParticleFilter(Filter):
         self._updateParticles(pose, obs)
         self._resampleParticles()
         self._updateBelief()
+        self._updateTransformedBelief(pose)
 
     def entropy(self):
         f = self.getBelief()
