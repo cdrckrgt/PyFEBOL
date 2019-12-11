@@ -122,7 +122,7 @@ class ParticleFilter(Filter):
         '''
         return self.transformedBelief
 
-    def _udpateTransformedBelief(self, pose):
+    def _updateTransformedBelief(self, pose):
         origin_length = 0.5 * self.domain.length
         x, y, heading = pose
         # get particles relative to seeker position
