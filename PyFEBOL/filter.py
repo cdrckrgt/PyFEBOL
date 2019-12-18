@@ -116,11 +116,14 @@ class ParticleFilter(Filter):
         self.transformedBelief = np.ones((self.buckets, self.buckets)) / (self.buckets ** 2)
         self.transformedBelief = self.transformedBelief[np.newaxis, :, :]
 
-    def getTransformedBelief(self):
+    def getTransformedBelief(self, norm=True):
         '''
         returns belief matrix centered on the drone pose and rotated according to pose
         '''
-        return self.transformedBelief
+        belief = self.transformedBelief
+        if norm == False:
+            belief *= self.nb_particles 
+        return belief
 
     def _updateTransformedBelief(self, pose):
         origin_length = 0.5 * self.domain.length
@@ -135,9 +138,12 @@ class ParticleFilter(Filter):
         R = np.array([[c, -s], [s, c]])
         x_relative, y_relative = np.dot(R, np.asarray([x_relative, y_relative]))
 
+        x_relative += origin_length
+        y_relative += origin_length
+
         # discretize particles into matrix for neural net
-        x_relative, y_relative =  np.clip(x_relative, 0, self.domain.length), np.clip(y_relative, 0, self.domain.length)
-        f = fhist2d(x_relative, y_relative, bins=self.buckets, range=[[0, self.domain.length + 1], [0, self.domain.length + 1]], weights=self.weights)
+        # x_relative, y_relative =  np.clip(x_relative, 0, self.domain.length), np.clip(y_relative, 0, self.domain.length)
+        f = fhist2d(x_relative, y_relative, bins=self.buckets, range=[[0, self.domain.length + 1], [0, self.domain.length + 1]], weights=self.weights).T
         f = f[np.newaxis, :, :] # add channel dimension
         assert np.all(np.isfinite(f)), 'belief matrix contains nan values. filter: {}, weights: {}'.format(f, self.weights)
         if np.all(f == 0):
@@ -147,11 +153,14 @@ class ParticleFilter(Filter):
         self.transformedBelief = f
 
 
-    def getBelief(self):
+    def getBelief(self, norm=True):
         '''
         returns the true belief, centered at (half domain, half domain)
         '''
-        return self.belief
+        belief = self.belief
+        if norm == False:
+            belief *= self.nb_particles 
+        return belief
 
     def _updateBelief(self):
         # discretize belief for input into neural net
@@ -162,7 +171,7 @@ class ParticleFilter(Filter):
         # outside the search domain.
         # for belief updates, we will clip the particles to the edge of the domain, 
         # regardless of where the particle actually is.
-        x_particles, y_particles =  np.clip(self.x_particles, 0, self.domain.length), np.clip(self.y_particles, 0, self.domain.length)
+        # x_particles, y_particles =  np.clip(self.x_particles, 0, self.domain.length), np.clip(self.y_particles, 0, self.domain.length)
         f = fhist2d(x_particles, y_particles, bins=self.buckets, range=[[0, self.domain.length + 1], [0, self.domain.length + 1]], weights=self.weights)
         f = f[np.newaxis, :, :] # add channel dimension
         assert np.all(np.isfinite(f)), 'belief matrix contains nan values. filter: {}, weights: {}'.format(f, self.weights)

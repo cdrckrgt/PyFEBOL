@@ -67,21 +67,11 @@ class EntropyDistanceCostModel(CostModel):
     def getCost(self, domain, drone, filter_, action):
         entropy = filter_.entropy()
 
-        it = np.nditer(filter_.getBelief(), flags=['multi_index'])
-        expectation = 0
-        while not it.finished:
-            prob = it[0] # value of prob in this bucket
-            idx = it.multi_index # index of this bucket in filter (channel, x, y)
-            x = (idx[1] + 0.5) * filter_.cellSize
-            y = (idx[2] + 0.5) * filter_.cellSize
- 
-            x_seeker, y_seeker, _ = drone.getPose()
-            norm = np.linalg.norm(np.array([x, y]) - np.array([x_seeker, y_seeker]))
-
-            if norm < self.threshold: # if there's a collision for this bin
-                expectation += prob
-
-            it.iternext()
+        x_seeker, y_seeker, _ = drone.getPose()
+        pose = np.array([x_seeker, y_seeker])
+        norms = np.linalg.norm(np.asarray([filter_.x_particles, filter_.y_particles]) - pose[:, np.newaxis], axis=0)
+        expectation = np.sum(norms < self.threshold) / filter_.nb_particles
+        assert (expectation <= 1) and (expectation >= 0), 'expectation out of bounds'
 
         expectation *= self.lambda_
 
@@ -99,24 +89,13 @@ class HighestProbDistanceCostModel(CostModel):
     def getCost(self, domain, drone, filter_, action):
 
         max_prob = filter_.maxProbBucket()
-        expectation = 0.0
-
-        F = filter_.getBelief().squeeze()
-        i, j = np.nonzero(F)
-        x = (j + 0.5) * filter_.cellSize
-        y = (i + 0.5) * filter_.cellSize
-
-        centers = np.dstack((x, y)).squeeze()
-
+        
         x_seeker, y_seeker, _ = drone.getPose()
         pose = np.array([x_seeker, y_seeker])
+        norms = np.linalg.norm(np.asarray([filter_.x_particles, filter_.y_particles]) - pose[:, np.newaxis], axis=0)
+        expectation = np.sum(norms < self.threshold) / filter_.nb_particles
+        assert (expectation <= 1) and (expectation >= 0), 'expectation out of bounds'
 
-        if centers.shape == pose.shape:
-            norms = np.linalg.norm(centers - pose)
-        else:
-            norms = np.linalg.norm(centers - pose, axis=1)
-
-        expectation = np.sum(F[i, j][norms < self.threshold])
         expectation *= self.lambda_
 
         return (max_prob - expectation)
@@ -133,21 +112,11 @@ class MaxEigenvalDistanceCostModel(CostModel):
     def getCost(self, domain, drone, filter_, action):
         max_eig = filter_.maxEigenvalue()
 
-        it = np.nditer(filter_.getBelief(), flags=['multi_index'])
-        expectation = 0
-        while not it.finished:
-            prob = it[0] # value of prob in this bucket
-            idx = it.multi_index # index of this bucket in filter (channel, x, y)
-            x = (idx[1] + 0.5) * filter_.cellSize
-            y = (idx[2] + 0.5) * filter_.cellSize
-            
-            x_seeker, y_seeker, _ = drone.getPose()
-            norm = np.linalg.norm(np.array([x, y]) - np.array([x_seeker, y_seeker]))
-
-            if norm < self.threshold: # if there's a collision for this bin
-                expectation += prob
-
-            it.iternext()
+        x_seeker, y_seeker, _ = drone.getPose()
+        pose = np.array([x_seeker, y_seeker])
+        norms = np.linalg.norm(np.asarray([filter_.x_particles, filter_.y_particles]) - pose[:, np.newaxis], axis=0)
+        expectation = np.sum(norms < self.threshold) / filter_.nb_particles
+        assert (expectation <= 1) and (expectation >= 0), 'expectation out of bounds'
 
         expectation *= self.lambda_
 
@@ -166,24 +135,12 @@ class DiscreteProbDistanceCostModel(CostModel):
     def getCost(self, domain, drone, filter_, action):
 
         max_prob = filter_.maxProbBucket()
-        expectation = 0.0
-
-        F = filter_.getBelief().squeeze()
-        i, j = np.nonzero(F)
-        x = (j + 0.5) * filter_.cellSize
-        y = (i + 0.5) * filter_.cellSize
-
-        centers = np.dstack((x, y)).squeeze()
-
+        
         x_seeker, y_seeker, _ = drone.getPose()
         pose = np.array([x_seeker, y_seeker])
-
-        if centers.shape == pose.shape:
-            norms = np.linalg.norm(centers - pose)
-        else:
-            norms = np.linalg.norm(centers - pose, axis=1)
-
-        expectation = np.sum(F[i, j][norms < self.distance_threshold])
+        norms = np.linalg.norm(np.asarray([filter_.x_particles, filter_.y_particles]) - pose[:, np.newaxis], axis=0)
+        expectation = np.sum(norms < self.distance_threshold) / filter_.nb_particles
+        assert (expectation <= 1) and (expectation >= 0), 'expectation out of bounds'
 
         reward = 1 if max_prob > self.entropy_threshold else 0
         reward = -1 if expectation > self.collision_threshold else reward
@@ -203,24 +160,12 @@ class ThresholdProbDistanceCostModel(CostModel):
     def getCost(self, domain, drone, filter_, action):
 
         max_prob = filter_.maxProbBucket()
-        expectation = 0.0
-
-        F = filter_.getBelief().squeeze()
-        i, j = np.nonzero(F)
-        x = (j + 0.5) * filter_.cellSize
-        y = (i + 0.5) * filter_.cellSize
-
-        centers = np.dstack((x, y)).squeeze()
-
+        
         x_seeker, y_seeker, _ = drone.getPose()
         pose = np.array([x_seeker, y_seeker])
-
-        if centers.shape == pose.shape:
-            norms = np.linalg.norm(centers - pose)
-        else:
-            norms = np.linalg.norm(centers - pose, axis=1)
-
-        expectation = np.sum(F[i, j][norms < self.distance_threshold])
+        norms = np.linalg.norm(np.asarray([filter_.x_particles, filter_.y_particles]) - pose[:, np.newaxis], axis=0)
+        expectation = np.sum(norms < self.distance_threshold) / filter_.nb_particles
+        assert (expectation <= 1) and (expectation >= 0), 'expectation out of bounds'
 
         belief_reward = max(float(max_prob - self.entropy_threshold) / float(1 - self.entropy_threshold), 0.0)
         collision_reward = self.lambda_ * expectation
@@ -245,30 +190,10 @@ class WeightedThresholdCostModel(CostModel):
     def getCost(self, domain, drone, filter_, action):
 
         # entropy
-        # max_prob = filter_.maxProbBucket()
-        # belief_reward = self.lambda_2 * max(float(max_prob - self.entropy_threshold) / float(1 - self.entropy_threshold), 0.0)
         entropy = filter_.entropy()
         belief_reward = self.lambda_2 * -entropy
         
-
-        # near collisions
-        # F = filter_.getBelief().squeeze()
-        # i, j = np.nonzero(F)
-        # x = (j + 0.5) * filter_.cellSize
-        # y = (i + 0.5) * filter_.cellSize
-
-        # centers = np.dstack((x, y)).squeeze()
-
-        # x_seeker, y_seeker, _ = drone.getPose()
-        # pose = np.array([x_seeker, y_seeker])
-
-        # if centers.shape == pose.shape:
-        #     norms = np.linalg.norm(centers - pose)
-        # else:
-        #     norms = np.linalg.norm(centers - pose, axis=1)
-
-        # expectation = np.sum(F[i, j][norms < self.distance_threshold])
-
+        # collision
         x_seeker, y_seeker, _ = drone.getPose()
         pose = np.array([x_seeker, y_seeker])
         norms = np.linalg.norm(np.asarray([filter_.x_particles, filter_.y_particles]) - pose[:, np.newaxis], axis=0)
@@ -276,36 +201,9 @@ class WeightedThresholdCostModel(CostModel):
         assert (expectation <= 1) and (expectation >= 0), 'expectation out of bounds'
         collision_reward = self.lambda_1 * expectation
 
-
         # tracking error
         tracking_error = np.linalg.norm(np.array(filter_.centroid()) - np.array(domain.getTheta()))
-        # # normalize by the domain length
-        # tracking_error = 1 - tracking_error / domain.length
-        # tracking_reward = self.lambda_3 * max(float(tracking_error - self.tracking_threshold) / float(1 - self.tracking_threshold), 0.0)
         tracking_reward = self.lambda_3 * int(tracking_error < 10.)
-
-        # dist = np.linalg.norm(np.array([x_seeker, y_seeker]) - np.asarray(domain.getTheta()))
-        # if dist < self.distance_threshold and tracking_error < 15:
-        #     print('real distance: ', dist)
-        #     print('tracking error: ', tracking_error)
-        #     # print('F: ', F)
-        #     # print('centers: ', centers)
-
-        #     print('particles shape: ', np.asarray([filter_.x_particles, filter_.y_particles]).shape)
-        #     print('pose shape: ', pose.shape)
-        #     particle_norms = np.linalg.norm(np.asarray([filter_.x_particles, filter_.y_particles]) - pose[:, np.newaxis], axis=0)
-        #     particle_expectation = np.sum(particle_norms < self.distance_threshold) / filter_.nb_particles
-        #     print('particle_norms: ', particle_norms)
-        #     print('particle_expectation: ', particle_expectation)
-
-
-        #     print('centers norms: ', norms)
-        #     print('expectation: ', expectation)
-        #     print('entropy: ', entropy)
-
-        # print('belief_reward: ', belief_reward)
-        # print('collision_reward: ', collision_reward)
-        # print('tracking_reward: ', tracking_reward)
 
         assert np.isfinite(belief_reward), 'belief_reward contains nan values. pose: {}'.format(belief_reward)
         assert np.isfinite(collision_reward), 'collision_reward contains nan values. pose: {}'.format(collision_reward)
@@ -330,24 +228,12 @@ class ThresholdTrackingCostModel(CostModel):
     def getCost(self, domain, drone, filter_, action):
 
         max_prob = filter_.maxProbBucket()
-        expectation = 0.0
-
-        F = filter_.getBelief().squeeze()
-        i, j = np.nonzero(F)
-        x = (j + 0.5) * filter_.cellSize
-        y = (i + 0.5) * filter_.cellSize
-
-        centers = np.dstack((x, y)).squeeze()
-
+        
         x_seeker, y_seeker, _ = drone.getPose()
         pose = np.array([x_seeker, y_seeker])
-
-        if centers.shape == pose.shape:
-            norms = np.linalg.norm(centers - pose)
-        else:
-            norms = np.linalg.norm(centers - pose, axis=1)
-
-        expectation = np.sum(F[i, j][norms < self.distance_threshold])
+        norms = np.linalg.norm(np.asarray([filter_.x_particles, filter_.y_particles]) - pose[:, np.newaxis], axis=0)
+        expectation = np.sum(norms < self.distance_threshold) / filter_.nb_particles
+        assert (expectation <= 1) and (expectation >= 0), 'expectation out of bounds'
 
         tracking_error = np.linalg.norm(np.array(filter_.centroid()) - np.array(domain.getTheta()))
         # normalize by the domain length
@@ -382,21 +268,9 @@ class SimpleHCTCostModel(CostModel):
         x_seeker, y_seeker, _ = drone.getPose()
         pose = np.array([x_seeker, y_seeker])
 
-        expectation = 0.0
-
-        F = filter_.getBelief().squeeze()
-        i, j = np.nonzero(F)
-        x = (j + 0.5) * filter_.cellSize
-        y = (i + 0.5) * filter_.cellSize
-
-        centers = np.dstack((x, y)).squeeze()
-
-        if centers.shape == pose.shape:
-            norms = np.linalg.norm(centers - pose)
-        else:
-            norms = np.linalg.norm(centers - pose, axis=1)
-
-        expectation = np.sum(F[i, j][norms < self.distance_threshold])
+        norms = np.linalg.norm(np.asarray([filter_.x_particles, filter_.y_particles]) - pose[:, np.newaxis], axis=0)
+        expectation = np.sum(norms < self.distance_threshold) / filter_.nb_particles
+        assert (expectation <= 1) and (expectation >= 0), 'expectation out of bounds'
 
         tracking_error = np.linalg.norm(np.array(filter_.centroid()) - np.array(domain.getTheta()))
         # normalize by the domain length
