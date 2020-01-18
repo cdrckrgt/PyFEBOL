@@ -22,4 +22,4 @@ def getTrueBearing(theta, pose):
     # can return either scalar bearing or array of bearings through broadcasting
     xr = theta[0] - pose[0]        
     yr = theta[1] - pose[1]        
-    return np.degrees(np.arctan2(xr, yr)) % 360.
+    return np.degrees(np.arctan2(yr, xr)) % 360.

@@ -172,6 +172,7 @@ class ParticleFilter(Filter):
         # for belief updates, we will clip the particles to the edge of the domain, 
         # regardless of where the particle actually is.
         # x_particles, y_particles =  np.clip(self.x_particles, 0, self.domain.length), np.clip(self.y_particles, 0, self.domain.length)
+        x_particles, y_particles = self.x_particles, self.y_particles
         f = fhist2d(x_particles, y_particles, bins=self.buckets, range=[[0, self.domain.length + 1], [0, self.domain.length + 1]], weights=self.weights)
         f = f[np.newaxis, :, :] # add channel dimension
         assert np.all(np.isfinite(f)), 'belief matrix contains nan values. filter: {}, weights: {}'.format(f, self.weights)
@@ -229,8 +230,8 @@ class ParticleFilter(Filter):
         self.weights = np.ones(self.nb_particles) / self.nb_particles
 
     def _resampleParticles(self):
-        # if ((1. / np.sum(np.square(self.weights))) < (self.nb_particles / 2)):
-        self._stratifiedResample()
+        if ((1. / np.sum(np.square(self.weights))) < (self.nb_particles / 2)):
+            self._stratifiedResample()
 
     def update(self, pose, obs, nb_act_repeat=1):
         self._predictParticles(nb_act_repeat)
