@@ -143,7 +143,7 @@ class ParticleFilter(Filter):
 
         # discretize particles into matrix for neural net
         # x_relative, y_relative =  np.clip(x_relative, 0, self.domain.length), np.clip(y_relative, 0, self.domain.length)
-        f = fhist2d(x_relative, y_relative, bins=self.buckets, range=[[0, self.domain.length + 1], [0, self.domain.length + 1]], weights=self.weights).T
+        f = fhist2d(x_relative, y_relative, bins=self.buckets, range=[[0, self.domain.length + 1], [0, self.domain.length + 1]], weights=self.weights)
         f = f[np.newaxis, :, :] # add channel dimension
         assert np.all(np.isfinite(f)), 'belief matrix contains nan values. filter: {}, weights: {}'.format(f, self.weights)
         if np.all(f == 0):
