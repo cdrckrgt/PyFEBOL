@@ -128,9 +128,11 @@ class ParticleFilter(Filter):
     def _updateTransformedBelief(self, pose):
         origin_length = 0.5 * self.domain.length
         x, y, heading = pose
+
+        sampled = np.random.randint(self.nb_particles, size=int(self.nb_particles / 10)) # sample 10 % of particles for belief
         # get particles relative to seeker position
-        x_relative = self.x_particles - x
-        y_relative = self.y_particles - y
+        x_relative = (self.x_particles - x)[sampled]
+        y_relative = (self.y_particles - y)[sampled]
 
         # rotate particles according to seeker heading
         theta = np.radians(heading)
@@ -143,13 +145,17 @@ class ParticleFilter(Filter):
 
         # discretize particles into matrix for neural net
         # x_relative, y_relative =  np.clip(x_relative, 0, self.domain.length), np.clip(y_relative, 0, self.domain.length)
-        f = fhist2d(x_relative, y_relative, bins=self.buckets, range=[[0, self.domain.length + 1], [0, self.domain.length + 1]], weights=self.weights)
+        f = fhist2d(x_relative, y_relative, bins=self.buckets, range=[[0, self.domain.length + 1], [0, self.domain.length + 1]], weights=self.weights[sampled])
         f = f[np.newaxis, :, :] # add channel dimension
         assert np.all(np.isfinite(f)), 'belief matrix contains nan values. filter: {}, weights: {}'.format(f, self.weights)
         if np.all(f == 0):
             print('all entries in belief matrix 0! this happens when belief is concentrated outside the search domain')
             f = (np.ones((self.buckets, self.buckets)) / (self.buckets ** 2))[np.newaxis, :, :]
             self.weights = np.ones(self.nb_particles) / self.nb_particles
+            self.x_particles = np.random.uniform(0, domain.length, self.nb_particles)
+            self.dx_particles = np.random.uniform(-self.maxStep, self.maxStep, self.nb_particles)
+            self.y_particles = np.random.uniform(0, domain.length, self.nb_particles)
+            self.dy_particles = np.random.uniform(-self.maxStep, self.maxStep, self.nb_particles)
         self.transformedBelief = f
 
 
@@ -172,14 +178,19 @@ class ParticleFilter(Filter):
         # for belief updates, we will clip the particles to the edge of the domain, 
         # regardless of where the particle actually is.
         # x_particles, y_particles =  np.clip(self.x_particles, 0, self.domain.length), np.clip(self.y_particles, 0, self.domain.length)
-        x_particles, y_particles = self.x_particles, self.y_particles
-        f = fhist2d(x_particles, y_particles, bins=self.buckets, range=[[0, self.domain.length + 1], [0, self.domain.length + 1]], weights=self.weights)
+        sampled = np.random.randint(self.nb_particles, size=int(self.nb_particles / 10)) # sample 10 % of particles for belief
+        x_particles, y_particles = self.x_particles[sampled], self.y_particles[sampled]
+        f = fhist2d(x_particles, y_particles, bins=self.buckets, range=[[0, self.domain.length + 1], [0, self.domain.length + 1]], weights=self.weights[sampled])
         f = f[np.newaxis, :, :] # add channel dimension
         assert np.all(np.isfinite(f)), 'belief matrix contains nan values. filter: {}, weights: {}'.format(f, self.weights)
         if np.all(f == 0):
             print('all entries in belief matrix 0! this happens when belief is concentrated outside the search domain')
             f = (np.ones((self.buckets, self.buckets)) / (self.buckets ** 2))[np.newaxis, :, :]
             self.weights = np.ones(self.nb_particles) / self.nb_particles
+            self.x_particles = np.random.uniform(0, domain.length, self.nb_particles)
+            self.dx_particles = np.random.uniform(-self.maxStep, self.maxStep, self.nb_particles)
+            self.y_particles = np.random.uniform(0, domain.length, self.nb_particles)
+            self.dy_particles = np.random.uniform(-self.maxStep, self.maxStep, self.nb_particles)
         self.belief = f
 
     def _predictParticles(self, nb_act_repeat=1):
