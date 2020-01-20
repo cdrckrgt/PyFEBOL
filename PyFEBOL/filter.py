@@ -152,9 +152,9 @@ class ParticleFilter(Filter):
             print('all entries in belief matrix 0! this happens when belief is concentrated outside the search domain')
             f = (np.ones((self.buckets, self.buckets)) / (self.buckets ** 2))[np.newaxis, :, :]
             self.weights = np.ones(self.nb_particles) / self.nb_particles
-            self.x_particles = np.random.uniform(0, domain.length, self.nb_particles)
+            self.x_particles = np.random.uniform(0, self.domain.length, self.nb_particles)
             self.dx_particles = np.random.uniform(-self.maxStep, self.maxStep, self.nb_particles)
-            self.y_particles = np.random.uniform(0, domain.length, self.nb_particles)
+            self.y_particles = np.random.uniform(0, self.domain.length, self.nb_particles)
             self.dy_particles = np.random.uniform(-self.maxStep, self.maxStep, self.nb_particles)
         self.transformedBelief = f
 
@@ -187,9 +187,9 @@ class ParticleFilter(Filter):
             print('all entries in belief matrix 0! this happens when belief is concentrated outside the search domain')
             f = (np.ones((self.buckets, self.buckets)) / (self.buckets ** 2))[np.newaxis, :, :]
             self.weights = np.ones(self.nb_particles) / self.nb_particles
-            self.x_particles = np.random.uniform(0, domain.length, self.nb_particles)
+            self.x_particles = np.random.uniform(0, self.domain.length, self.nb_particles)
             self.dx_particles = np.random.uniform(-self.maxStep, self.maxStep, self.nb_particles)
-            self.y_particles = np.random.uniform(0, domain.length, self.nb_particles)
+            self.y_particles = np.random.uniform(0, self.domain.length, self.nb_particles)
             self.dy_particles = np.random.uniform(-self.maxStep, self.maxStep, self.nb_particles)
         self.belief = f
 
